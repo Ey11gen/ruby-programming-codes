@@ -1,0 +1,231 @@
+# Chapter 8 – Defining classes and creating instances
+
+class Dog
+  def bark
+    puts "Woof! Woof!"
+  end
+
+  def describe
+    puts "I am a dog."
+  end
+end
+
+my_dog   = Dog.new
+your_dog = Dog.new
+
+my_dog.bark
+your_dog.bark
+my_dog.describe
+puts my_dog.class
+puts my_dog.is_a?(Dog)
+
+# Chapter 8 – initialize and instance variables
+
+class Person
+  def initialize(name, age, city)
+    @name = name
+    @age  = age
+    @city = city
+  end
+
+  def introduce
+    puts "Hello, my name is #{@name}."
+    puts "I am #{@age} years old and I live in #{@city}."
+  end
+
+  def have_birthday
+    @age += 1
+    puts "Happy birthday, #{@name}! You are now #{@age} years old."
+  end
+end
+
+person1 = Person.new("Elena", 28, "Rome")
+person2 = Person.new("Marcus", 35, "Cairo")
+
+person1.introduce
+person2.introduce
+person1.have_birthday
+person1.introduce
+person2.introduce
+
+# Chapter 8 – attr_reader, attr_writer, attr_accessor
+
+class Book
+  attr_reader   :title, :author
+  attr_writer   :price
+  attr_accessor :stock, :isbn
+
+  def initialize(title, author, price, stock, isbn)
+    @title  = title
+    @author = author
+    @price  = price
+    @stock  = stock
+    @isbn   = isbn
+  end
+
+  def describe
+    puts "\"#{@title}\" by #{@author}"
+    puts "  ISBN:  #{@isbn}"
+    puts "  Price: $#{@price}"
+    puts "  Stock: #{@stock} copies"
+  end
+end
+
+book = Book.new("Ruby Programming", "Matz", 39.99, 25, "978-1-2345-6789-0")
+book.describe
+
+puts book.title
+puts book.author
+book.price = 34.99
+book.stock -= 1
+book.describe
+
+# Chapter 8 – Instance methods, self, and to_s
+
+class Rectangle
+  attr_accessor :width, :height
+
+  def initialize(width, height)
+    @width  = width
+    @height = height
+  end
+
+  def area
+    @width * @height
+  end
+
+  def perimeter
+    2 * (@width + @height)
+  end
+
+  def diagonal
+    Math.sqrt(area)
+  end
+
+  def square?
+    @width == @height
+  end
+
+  def scale!(factor)
+    @width  *= factor
+    @height *= factor
+    self
+  end
+
+  def to_s
+    "Rectangle(#{@width} x #{@height})"
+  end
+end
+
+rect = Rectangle.new(6, 4)
+puts rect
+puts rect.area
+puts rect.perimeter
+puts rect.diagonal.round(3)
+puts rect.square?
+
+rect.scale!(3)
+puts rect
+puts rect.square?
+
+# Chapter 8 – Class methods (factory methods)
+
+class Temperature
+  attr_reader :celsius
+
+  def initialize(celsius)
+    @celsius = celsius.to_f
+  end
+
+  def self.from_fahrenheit(f)
+    new((f - 32) * 5.0 / 9.0)
+  end
+
+  def self.from_kelvin(k)
+    new(k - 273.15)
+  end
+
+  def to_fahrenheit
+    (@celsius * 9.0 / 5.0) + 32
+  end
+
+  def to_kelvin
+    @celsius + 273.15
+  end
+
+  def to_s
+    "#{@celsius.round(2)} C"
+  end
+end
+
+boiling    = Temperature.new(100)
+body_temp  = Temperature.from_fahrenheit(98.6)
+absolute_z = Temperature.from_kelvin(0)
+
+puts boiling
+puts boiling.to_fahrenheit.round(2)
+puts body_temp
+puts absolute_z
+
+# Chapter 8 – Public, private, and access control
+
+class BankAccount
+  attr_reader :balance, :owner
+
+  def initialize(owner, initial_balance)
+    @owner        = owner
+    @balance      = initial_balance.to_f
+    @transactions = []
+  end
+
+  def deposit(amount)
+    if valid_amount?(amount)
+      @balance += amount
+      record_transaction("deposit", amount)
+      puts "Deposited #{format_money(amount)}. Balance: #{format_money(@balance)}"
+    else
+      puts "Invalid deposit amount."
+    end
+  end
+
+  def withdraw(amount)
+    if valid_amount?(amount) && sufficient_funds?(amount)
+      @balance -= amount
+      record_transaction("withdrawal", amount)
+      puts "Withdrew #{format_money(amount)}. Balance: #{format_money(@balance)}"
+    else
+      puts "Withdrawal failed."
+    end
+  end
+
+  def statement
+    puts "Account: #{@owner}"
+    @transactions.each { |t| puts "  #{t}" }
+    puts "Current balance: #{format_money(@balance)}"
+  end
+
+  private
+
+  def valid_amount?(amount)
+    amount.is_a?(Numeric) && amount > 0
+  end
+
+  def sufficient_funds?(amount)
+    @balance >= amount
+  end
+
+  def record_transaction(type, amount)
+    @transactions << "#{type.capitalize}: #{format_money(amount)}"
+  end
+
+  def format_money(amount)
+    "$#{format('%.2f', amount)}"
+  end
+end
+
+account = BankAccount.new("Maria Santos", 1000)
+account.deposit(500)
+account.withdraw(200)
+account.withdraw(2000)
+account.deposit(-50)
+account.statement
