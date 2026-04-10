@@ -1,0 +1,206 @@
+# Chapter 6 – Creating and accessing arrays
+
+numbers = [10, 20, 30, 40, 50]
+names   = ["Alice", "Bob", "Carlos", "Diana"]
+mixed   = [42, "hello", true, nil, 3.14, :symbol]
+empty   = []
+
+puts numbers.inspect
+puts names.inspect
+puts mixed.inspect
+puts empty.inspect
+
+fruits = ["apple", "banana", "cherry", "date", "elderberry"]
+puts fruits[0]
+puts fruits[1]
+puts fruits[4]
+puts fruits[-1]
+puts fruits[-2]
+puts fruits[10].inspect
+
+letters = ["a", "b", "c", "d", "e", "f", "g"]
+puts letters[1, 3].inspect
+puts letters[2..5].inspect
+puts letters[2...5].inspect
+puts letters.first
+puts letters.last
+puts letters.first(3).inspect
+puts letters.last(2).inspect
+puts letters.length
+
+# Modifying elements
+scores = [85, 72, 90, 68, 95]
+puts scores.inspect
+scores[1] = 78
+puts scores.inspect
+scores[-1] = 100
+puts scores.inspect
+
+# Chapter 6 – Essential array methods
+
+stack = []
+stack.push("first")
+stack.push("second", "third")
+puts stack.inspect
+
+removed = stack.pop
+puts "Removed: #{removed}"
+puts stack.inspect
+
+stack.unshift("zero")
+puts stack.inspect
+
+front = stack.shift
+puts "Removed from front: #{front}"
+puts stack.inspect
+
+stack << "appended"
+puts stack.inspect
+
+# Querying
+animals = ["cat", "dog", "elephant", "fox", "dog", "bear"]
+puts animals.include?("dog")
+puts animals.include?("lion")
+puts animals.index("dog")
+puts animals.rindex("dog")
+puts animals.count("dog")
+puts animals.empty?
+puts [].empty?
+puts animals.any? { |a| a.length > 5 }
+puts animals.all? { |a| a.length > 2 }
+puts animals.none? { |a| a.length > 10 }
+puts animals.min
+puts animals.max
+puts animals.minmax.inspect
+
+# Sorting
+nums  = [5, 2, 9, 1, 7, 3, 8, 4, 6]
+words = ["banana", "apple", "cherry", "date"]
+puts nums.sort.inspect
+puts words.sort.inspect
+puts nums.sort.reverse.inspect
+puts nums.sort_by { |n| -n }.inspect
+puts words.sort_by { |w| w.length }.inspect
+puts nums.sample.class
+puts nums.sample(3).inspect
+puts [1, 2, 2, 3, 3, 3, 4].uniq.inspect
+puts [1, 2, nil, 3, nil, 4].compact.inspect
+puts [1, [2, 3], [4, [5, 6]]].flatten.inspect
+puts [1, [2, 3], [4, [5, 6]]].flatten(1).inspect
+
+# Chapter 6 – Creating and working with hashes
+
+person = {
+  name:   "Elena",
+  age:    29,
+  city:   "Barcelona",
+  active: true
+}
+
+puts person.inspect
+puts person[:name]
+puts person[:age]
+puts person[:city]
+puts person[:missing].inspect
+
+# Adding, updating, deleting
+config = { host: "localhost", port: 3000 }
+config[:database] = "myapp_db"
+puts config.inspect
+
+config[:port] = 8080
+puts config.inspect
+
+config.delete(:host)
+puts config.inspect
+
+puts config.key?(:port)
+puts config.key?(:host)
+puts config.value?(8080)
+puts config.length
+
+# Iterating
+inventory = {
+  apples:   150,
+  bananas:  80,
+  cherries: 320,
+  dates:    45
+}
+
+inventory.each do |item, quantity|
+  puts "#{item}: #{quantity} units in stock"
+end
+
+puts inventory.keys.inspect
+puts inventory.values.inspect
+puts inventory.to_a.inspect
+
+expensive = inventory.select { |item, qty| qty > 100 }
+puts expensive.inspect
+
+doubled = inventory.transform_values { |qty| qty * 2 }
+puts doubled.inspect
+
+# Chapter 6 – Nested arrays and hashes
+
+students = [
+  { name: "Alice",  grades: [88, 92, 79, 95], city: "London" },
+  { name: "Bob",    grades: [75, 81, 90, 70], city: "Paris"  },
+  { name: "Carlos", grades: [95, 98, 92, 97], city: "Madrid" },
+]
+
+puts students[0][:name]
+puts students[1][:city]
+puts students[2][:grades][1]
+puts students[0][:grades].sum
+
+students.each do |student|
+  average = student[:grades].sum.to_f / student[:grades].length
+  puts "#{student[:name]} (#{student[:city]}): average #{average.round(1)}"
+end
+
+company = {
+  name: "RubyTech",
+  departments: {
+    engineering: { head: "Sara",  staff: 12, budget: 500_000 },
+    marketing:   { head: "James", staff: 5,  budget: 200_000 },
+    support:     { head: "Leila", staff: 8,  budget: 150_000 },
+  }
+}
+
+puts company[:name]
+puts company[:departments][:engineering][:head]
+puts company[:departments][:marketing][:budget]
+
+company[:departments].each do |dept_name, dept_info|
+  puts "#{dept_name}: led by #{dept_info[:head]}, #{dept_info[:staff]} staff"
+end
+
+total_staff = company[:departments].sum { |_, info| info[:staff] }
+puts "Total staff: #{total_staff}"
+
+# Chapter 6 – Ranges
+
+inclusive = 1..10
+exclusive = 1...10
+
+puts inclusive.to_a.inspect
+puts exclusive.to_a.inspect
+puts inclusive.include?(10)
+puts exclusive.include?(10)
+puts inclusive.min
+puts inclusive.max
+puts inclusive.sum
+puts inclusive.count
+
+letters = "a".."f"
+puts letters.to_a.inspect
+puts letters.include?("d")
+
+(1..5).each { |n| print "#{n} " }
+puts
+
+evens = (2..20).step(2).to_a
+puts evens.inspect
+
+puts (1..100).select { |n| n % 7 == 0 }.inspect
