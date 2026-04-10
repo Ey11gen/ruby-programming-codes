@@ -1,0 +1,463 @@
+# Chapter 20 – CLI: command-line interface layer
+
+require_relative 'task'
+require_relative 'task_repository'
+
+class CLI
+  COMMANDS = %w[add list show complete delete stats help].freeze
+
+  def initialize(repo = TaskRepository.new)
+    @repo = repo
+  end
+
+  def run(args)
+    command = args.shift&.downcase
+    if command.nil? || command == "help"
+      show_help
+    elsif COMMANDS.include?(command)
+      send("cmd_#{command}", args)
+    else
+      error "Unknown command: #{command}. Run 'rubytask help' for usage."
+    end
+  rescue ArgumentError => e
+    error e.message
+  end
+
+  private
+
+  def cmd_add(args)
+    title       = args.shift
+    error "Usage: add TITLE [--desc DESCRIPTION] [--priority low|normal|high|urgent]" if title.nil?
+    description = extract_option(args, "--desc",     "")
+    priority    = extract_option(args, "--priority", "normal")
+    task        = Task.new(title: title, description: description, priority: priority)
+    saved       = @repo.add(task)
+    success "Task ##{saved.id} created: #{saved.title}"
+  end
+
+  def cmd_list(args)
+    status   = extract_option(args, "--status",   nil)
+    priority = extract_option(args, "--priority", nil)
+    tasks    = @repo.where(status: status, priority: priority)
+    if tasks.empty?
+      info "No tasks found."
+      return
+    end
+    tasks.sort_by { |t| [-t.priority_value, t.id] }.each { |t| puts t }
+    info "\n#{tasks.length} task(s) shown."
+  end
+
+  def cmd_show(args)
+    id   = args.first
+    error "Usage: show TASK_ID" if id.nil?
+    task = @repo.find(id)
+    error "Task ##{id} not found." if task.nil?
+    puts "=" * 50
+    puts "ID:          #{task.id}"
+    puts "Title:       #{task.title}"
+    puts "Description: #{task.description.empty? ? '(none)' : task.description}"
+    puts "Priority:    #{task.priority.upcase}"
+    puts "Status:      #{task.status.upcase}"
+    puts "Created:     #{task.created_at.strftime('%Y-%m-%d %H:%M')}"
+    puts "Completed:   #{task.completed_at ? task.completed_at.strftime('%Y-%m-%d %H:%M') : 'N/A'}"
+    puts "=" * 50
+  end
+
+  def cmd_complete(args)
+    id   = args.first
+    error "Usage: complete TASK_ID" if id.nil?
+    task = @repo.find(id)
+    error "Task ##{id} not found."          if task.nil?
+    error "Task ##{id} is already completed." if task.completed?
+    @repo.update(task.complete!)
+    success "Task ##{task.id} marked as complete."
+  end
+
+  def cmd_delete(args)
+    id   = args.first
+    error "Usage: delete TASK_ID" if id.nil?
+    task = @repo.delete(id)
+    success "Task ##{task.id} deleted: #{task.title}"
+  end
+
+  def cmd_stats(args)
+    s = @repo.stats
+    puts "=" * 30
+    puts "RubyTask Statistics"
+    puts "=" * 30
+    puts "Total tasks:     #{s[:total]}"
+    puts "Completed:       #{s[:completed]}"
+    puts "Pending:         #{s[:pending]}"
+    puts "Pending by priority:"
+    s[:by_priority].each { |pri, count| puts "  #{pri.ljust(8)}: #{count}" }
+    rate = s[:total].zero? ? 0 : (s[:completed].to_f / s[:total] * 100).round(1)
+    puts "Completion rate: #{rate}%"
+    puts "=" * 30
+  end
+
+  def show_help
+    puts <<~HELP
+      RubyTask - Command-line task manager
+
+      Usage: rubytask COMMAND [options]
+
+      Commands:
+        add TITLE [--desc TEXT] [--priority low|normal|high|urgent]
+        list [--status pending|completed] [--priority low|normal|high|urgent]
+        show TASK_ID
+        complete TASK_ID
+        delete TASK_ID
+        stats
+        help
+    HELP
+  end
+
+  def extract_option(args, flag, default)
+    idx = args.index(flag)
+    return default if idx.nil?
+    args.delete_at(idx)
+    args.delete_at(idx)
+  end
+
+  def error(message)
+    warn "Error: #{message}"
+    exit(1)
+  end
+
+  def success(message)
+    puts "OK: #{message}"
+  end
+
+  def info(message)
+    puts message
+  end
+end
+
+# Chapter 20 – RubyTask Gemfile
+
+source "https://rubygems.org"
+
+ruby ">= 3.0.0"
+
+group :test do
+  gem "minitest", "~> 5.20"
+end
+
+#!/usr/bin/env ruby
+# Chapter 20 – RubyTask entry point
+# Usage: ruby rubytask.rb help
+#        ruby rubytask.rb add "Fix the bug" --priority high
+#        ruby rubytask.rb list
+#        ruby rubytask.rb list --status pending
+#        ruby rubytask.rb show 1
+#        ruby rubytask.rb complete 1
+#        ruby rubytask.rb delete 2
+#        ruby rubytask.rb stats
+
+require 'fileutils'
+require_relative 'lib/cli'
+
+CLI.new.run(ARGV.dup)
+
+# Chapter 20 – Task domain model
+
+class Task
+  PRIORITIES     = { "low" => 1, "normal" => 2, "high" => 3, "urgent" => 4 }.freeze
+  VALID_STATUSES = %w[pending completed].freeze
+
+  attr_reader   :id, :created_at, :completed_at
+  attr_accessor :title, :description, :priority, :status
+
+  def initialize(attrs = {})
+    @id           = attrs[:id]           || attrs["id"]
+    @title        = attrs[:title]        || attrs["title"]        || ""
+    @description  = attrs[:description]  || attrs["description"]  || ""
+    @priority     = attrs[:priority]     || attrs["priority"]     || "normal"
+    @status       = attrs[:status]       || attrs["status"]       || "pending"
+    @created_at   = parse_time(attrs[:created_at]   || attrs["created_at"])   || Time.now
+    @completed_at = parse_time(attrs[:completed_at] || attrs["completed_at"])
+  end
+
+  def complete!
+    @status       = "completed"
+    @completed_at = Time.now
+    self
+  end
+
+  def completed?
+    @status == "completed"
+  end
+
+  def pending?
+    @status == "pending"
+  end
+
+  def priority_value
+    PRIORITIES[@priority] || 2
+  end
+
+  def valid?
+    errors.empty?
+  end
+
+  def errors
+    errs = []
+    errs << "Title cannot be blank."                        if @title.to_s.strip.empty?
+    errs << "Title must be under 200 characters."          if @title.to_s.length > 200
+    errs << "Priority must be low, normal, high, or urgent." unless PRIORITIES.key?(@priority.to_s)
+    errs << "Status must be pending or completed."         unless VALID_STATUSES.include?(@status.to_s)
+    errs
+  end
+
+  def to_h
+    {
+      "id"           => @id,
+      "title"        => @title,
+      "description"  => @description,
+      "priority"     => @priority,
+      "status"       => @status,
+      "created_at"   => @created_at.iso8601,
+      "completed_at" => @completed_at&.iso8601
+    }
+  end
+
+  def to_s
+    tag = completed? ? "[DONE]" : "[#{@priority.upcase}]"
+    "#{@id}. #{tag} #{@title}"
+  end
+
+  private
+
+  def parse_time(value)
+    return nil   if value.nil?
+    return value if value.is_a?(Time)
+    Time.parse(value.to_s)
+  rescue ArgumentError
+    nil
+  end
+end
+
+# Chapter 20 – TaskRepository: persistence layer
+
+require 'json'
+require 'fileutils'
+require_relative 'task'
+
+class TaskRepository
+  DEFAULT_FILE = File.join(File.dirname(__FILE__), '..', 'data', 'tasks.json')
+
+  def initialize(filepath = DEFAULT_FILE)
+    @filepath = filepath
+    @tasks    = load_tasks
+  end
+
+  def all
+    @tasks.dup
+  end
+
+  def find(id)
+    @tasks.find { |t| t.id == id.to_i }
+  end
+
+  def where(status: nil, priority: nil)
+    result = @tasks.dup
+    result = result.select { |t| t.status   == status   } if status
+    result = result.select { |t| t.priority == priority } if priority
+    result
+  end
+
+  def add(task)
+    raise ArgumentError, task.errors.join(" ") unless task.valid?
+    task_with_id = Task.new(task.to_h.merge("id" => next_id))
+    @tasks << task_with_id
+    save_tasks
+    task_with_id
+  end
+
+  def update(task)
+    raise ArgumentError, task.errors.join(" ") unless task.valid?
+    index = @tasks.index { |t| t.id == task.id }
+    raise ArgumentError, "Task with ID #{task.id} not found." if index.nil?
+    @tasks[index] = task
+    save_tasks
+    task
+  end
+
+  def delete(id)
+    task = find(id)
+    raise ArgumentError, "Task with ID #{id} not found." if task.nil?
+    @tasks.reject! { |t| t.id == id.to_i }
+    save_tasks
+    task
+  end
+
+  def stats
+    total     = @tasks.length
+    completed = @tasks.count(&:completed?)
+    pending   = @tasks.count(&:pending?)
+    by_priority = Task::PRIORITIES.keys.each_with_object({}) do |pri, hash|
+      hash[pri] = @tasks.count { |t| t.priority == pri && t.pending? }
+    end
+    { total: total, completed: completed, pending: pending, by_priority: by_priority }
+  end
+
+  private
+
+  def load_tasks
+    return [] unless File.exist?(@filepath)
+    raw = File.read(@filepath)
+    return [] if raw.strip.empty?
+    data = JSON.parse(raw)
+    data.map { |attrs| Task.new(attrs) }
+  rescue JSON::ParserError => e
+    warn "Warning: Could not parse tasks file: #{e.message}. Starting fresh."
+    []
+  end
+
+  def save_tasks
+    FileUtils.mkdir_p(File.dirname(@filepath))
+    File.write(@filepath, JSON.pretty_generate(@tasks.map(&:to_h)))
+  end
+
+  def next_id
+    @tasks.empty? ? 1 : @tasks.map(&:id).max + 1
+  end
+end
+
+# Chapter 20 – TaskRepository test suite (Minitest)
+# Run with: ruby spec/task_repository_spec.rb
+
+require 'minitest/autorun'
+require 'tmpdir'
+require_relative '../lib/task_repository'
+
+class TaskRepositoryTest < Minitest::Test
+  def setup
+    @tmpdir = Dir.mktmpdir
+    @file   = File.join(@tmpdir, "tasks.json")
+    @repo   = TaskRepository.new(@file)
+  end
+
+  def teardown
+    FileUtils.remove_entry(@tmpdir)
+  end
+
+  def test_starts_empty
+    assert_empty @repo.all
+  end
+
+  def test_add_valid_task_returns_task_with_id
+    task  = Task.new(title: "Buy groceries", priority: "normal")
+    saved = @repo.add(task)
+    assert_equal 1,             saved.id
+    assert_equal "Buy groceries", saved.title
+  end
+
+  def test_add_invalid_task_raises_argument_error
+    task = Task.new(title: "", priority: "normal")
+    assert_raises(ArgumentError) { @repo.add(task) }
+  end
+
+  def test_find_returns_task_by_id
+    @repo.add(Task.new(title: "Task A", priority: "low"))
+    @repo.add(Task.new(title: "Task B", priority: "high"))
+    found = @repo.find(2)
+    assert_equal "Task B", found.title
+  end
+
+  def test_find_returns_nil_for_missing_id
+    assert_nil @repo.find(999)
+  end
+
+  def test_delete_removes_task
+    @repo.add(Task.new(title: "To delete", priority: "low"))
+    assert_equal 1, @repo.all.length
+    @repo.delete(1)
+    assert_empty @repo.all
+  end
+
+  def test_tasks_persist_across_repository_instances
+    @repo.add(Task.new(title: "Persistent task", priority: "high"))
+    repo2 = TaskRepository.new(@file)
+    assert_equal 1, repo2.all.length
+    assert_equal "Persistent task", repo2.find(1).title
+  end
+
+  def test_stats_returns_correct_counts
+    t1 = @repo.add(Task.new(title: "Task 1", priority: "high"))
+    t2 = @repo.add(Task.new(title: "Task 2", priority: "low"))
+    @repo.update(t1.complete!)
+    s = @repo.stats
+    assert_equal 2, s[:total]
+    assert_equal 1, s[:completed]
+    assert_equal 1, s[:pending]
+  end
+end
+
+# Chapter 20 – Task test suite (Minitest)
+# Run with: ruby spec/task_spec.rb
+
+require 'minitest/autorun'
+require_relative '../lib/task'
+
+class TaskTest < Minitest::Test
+  def setup
+    @task = Task.new(id: 1, title: "Write chapter 20", priority: "high")
+  end
+
+  def test_task_is_valid_with_required_fields
+    assert @task.valid?
+    assert_empty @task.errors
+  end
+
+  def test_task_is_invalid_without_title
+    task = Task.new(title: "", priority: "normal")
+    refute task.valid?
+    assert_includes task.errors, "Title cannot be blank."
+  end
+
+  def test_task_is_invalid_with_bad_priority
+    task = Task.new(title: "Valid title", priority: "extreme")
+    refute task.valid?
+    assert task.errors.any? { |e| e.include?("Priority") }
+  end
+
+  def test_new_task_is_pending_by_default
+    task = Task.new(title: "Test task")
+    assert task.pending?
+    refute task.completed?
+  end
+
+  def test_complete_changes_status
+    refute @task.completed?
+    @task.complete!
+    assert @task.completed?
+    refute @task.pending?
+    refute_nil @task.completed_at
+  end
+
+  def test_priority_value_reflects_priority_name
+    assert_equal 3, Task.new(title: "t", priority: "high").priority_value
+    assert_equal 2, Task.new(title: "t", priority: "normal").priority_value
+    assert_equal 1, Task.new(title: "t", priority: "low").priority_value
+    assert_equal 4, Task.new(title: "t", priority: "urgent").priority_value
+  end
+
+  def test_to_h_includes_all_fields
+    hash = @task.to_h
+    assert hash.key?("id")
+    assert hash.key?("title")
+    assert hash.key?("priority")
+    assert hash.key?("status")
+    assert hash.key?("created_at")
+    assert_equal "Write chapter 20", hash["title"]
+  end
+
+  def test_to_s_shows_priority_and_title
+    output = @task.to_s
+    assert_includes output, "HIGH"
+    assert_includes output, "Write chapter 20"
+  end
+end
+
+[]
