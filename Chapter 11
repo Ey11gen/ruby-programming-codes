@@ -1,0 +1,193 @@
+# Chapter 11 – Exception hierarchy
+
+puts ZeroDivisionError.ancestors.inspect
+puts ArgumentError.superclass
+puts NoMethodError.superclass
+puts RuntimeError.superclass
+
+# Chapter 11 – begin / rescue / ensure / else
+
+begin
+  puts "About to divide..."
+  result = 10 / 0
+  puts "This line never runs."
+rescue ZeroDivisionError => error
+  puts "Caught an exception: #{error.message}"
+  puts "Exception class: #{error.class}"
+  result = 0
+end
+puts "Continuing after the rescue block."
+puts "Result is: #{result}"
+
+# Multiple rescue clauses
+def parse_and_divide(text_numerator, text_denominator)
+  begin
+    numerator   = Integer(text_numerator)
+    denominator = Integer(text_denominator)
+    result      = numerator / denominator
+    puts "#{numerator} / #{denominator} = #{result}"
+  rescue ArgumentError => e
+    puts "Input error: '#{e.message}'. Please provide whole numbers."
+  rescue ZeroDivisionError
+    puts "Math error: division by zero is not allowed."
+  rescue StandardError => e
+    puts "Unexpected error: #{e.class} - #{e.message}"
+  end
+end
+
+parse_and_divide("10", "2")
+parse_and_divide("10", "0")
+parse_and_divide("ten", "2")
+parse_and_divide("10", "abc")
+
+# Chapter 11 – ensure (guaranteed cleanup) and else
+
+def read_file_safely(filename)
+  file = nil
+  begin
+    file    = File.open(filename, "r")
+    content = file.read
+  rescue Errno::ENOENT => e
+    puts "File not found: #{e.message}"
+    content = ""
+  rescue Errno::EACCES => e
+    puts "Permission denied: #{e.message}"
+    content = ""
+  else
+    puts "File read successfully. #{content.length} characters loaded."
+  ensure
+    if file && !file.closed?
+      file.close
+      puts "File handle closed in ensure block."
+    end
+  end
+  content
+end
+
+result = read_file_safely("nonexistent_file.txt")
+puts "Content length: #{result.length}"
+
+# Chapter 11 – Raising exceptions with raise
+
+def set_age(age)
+  raise ArgumentError, "Age must be a number."   unless age.is_a?(Numeric)
+  raise ArgumentError, "Age cannot be negative." if age < 0
+  raise ArgumentError, "Age cannot exceed 150."  if age > 150
+  @age = age
+  puts "Age set to #{@age}."
+end
+
+begin
+  set_age(25)
+  set_age(-5)
+rescue ArgumentError => e
+  puts "Caught: #{e.message}"
+end
+
+begin
+  set_age("thirty")
+rescue ArgumentError => e
+  puts "Caught: #{e.message}"
+end
+
+# Raising and re-raising
+def process_data(data)
+  begin
+    result = data.to_i * 10
+    raise "Result too large to process safely." if result > 10_000
+    result
+  rescue RuntimeError => e
+    puts "Warning in process_data: #{e.message}"
+    10_000
+  end
+end
+
+puts process_data("500")
+puts process_data("2000")
+
+# Chapter 11 – Custom exception classes
+
+class AppError < StandardError; end
+
+class AuthenticationError < AppError
+  def initialize(username)
+    @username = username
+    super("Authentication failed for user: #{username}")
+  end
+
+  def username
+    @username
+  end
+end
+
+class InsufficientFundsError < AppError
+  attr_reader :requested, :available
+
+  def initialize(requested, available)
+    @requested = requested
+    @available = available
+    super("Insufficient funds: requested #{requested}, only #{available} available.")
+  end
+end
+
+class PaymentError < AppError
+  attr_reader :error_code
+
+  def initialize(message, error_code)
+    @error_code = error_code
+    super("Payment error [#{error_code}]: #{message}")
+  end
+end
+
+def process_payment(amount, balance, authenticated)
+  raise AuthenticationError.new("guest_user") unless authenticated
+  raise InsufficientFundsError.new(amount, balance) if amount > balance
+  raise PaymentError.new("Card issuer declined.", "DECLINE_001") if amount > 900
+  puts "Payment of $#{amount} processed successfully."
+end
+
+[
+  [100,  500,  true],
+  [100,  500,  false],
+  [600,  500,  true],
+  [950,  1000, true],
+].each do |amount, balance, auth|
+  begin
+    process_payment(amount, balance, auth)
+  rescue AuthenticationError => e
+    puts "Auth problem (user: #{e.username}): #{e.message}"
+  rescue InsufficientFundsError => e
+    puts "Funds problem (need #{e.requested}, have #{e.available}): #{e.message}"
+  rescue PaymentError => e
+    puts "Payment declined [#{e.error_code}]: #{e.message}"
+  rescue AppError => e
+    puts "Application error: #{e.message}"
+  end
+end
+
+# Chapter 11 – retry for resilient operations
+
+def fetch_with_retry(url, max_attempts: 3)
+  attempts = 0
+  begin
+    attempts += 1
+    puts "Attempt #{attempts} of #{max_attempts}..."
+    # Simulate failure on first two attempts
+    raise Errno::ECONNREFUSED, "Simulated network failure." if attempts < 3
+    puts "Connection succeeded on attempt #{attempts}."
+    "Response data from #{url}"
+  rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT => e
+    puts "Network error: #{e.message}"
+    if attempts < max_attempts
+      puts "Waiting before retry..."
+      sleep(1)
+      retry
+    else
+      puts "All #{max_attempts} attempts failed. Giving up."
+      nil
+    end
+  end
+end
+
+result = fetch_with_retry("https://example.com")
+puts result.inspect
