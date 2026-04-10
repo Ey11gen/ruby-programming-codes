@@ -1,0 +1,200 @@
+# Chapter 13 – Time and Date
+
+now = Time.now
+puts now
+puts now.year
+puts now.month
+puts now.day
+puts now.hour
+puts now.min
+puts now.sec
+puts now.wday
+puts now.strftime("%A, %B %d, %Y at %I:%M %p")
+puts now.strftime("%Y-%m-%dT%H:%M:%S")
+
+past = Time.new(2000, 1, 1, 0, 0, 0)
+diff = now - past
+puts "Seconds since Y2K: #{diff.to_i}"
+puts "Days since Y2K: #{(diff / 86_400).to_i}"
+
+require 'date'
+
+today = Date.today
+puts today
+puts today.year
+puts today.month
+puts today.day
+puts today.monday?
+puts today.strftime("%A, %d %B %Y")
+
+birth  = Date.new(1990, 6, 15)
+age    = (today - birth).to_i / 365
+puts "Age: approximately #{age} years"
+
+future = today + 30
+puts "30 days from today: #{future}"
+
+parsed = Date.parse("2025-12-25")
+puts "Christmas 2025: #{parsed.strftime('%A, %B %d')}"
+puts "Days until then: #{(parsed - today).to_i}"
+
+last_day = Date.new(today.year, today.month, -1)
+puts "Last day of this month: #{last_day}"
+
+# Chapter 13 – Math module and SecureRandom
+
+puts Math::PI
+puts Math::E
+puts Math.sqrt(144)
+puts Math.sqrt(2).round(10)
+puts Math.cbrt(27)
+puts Math.sin(Math::PI / 2).round(10)
+puts Math.cos(0)
+puts Math.tan(Math::PI / 4).round(10)
+puts Math.log(Math::E)
+puts Math.log10(1000)
+puts Math.log2(8)
+puts Math.exp(1).round(10)
+puts Math.hypot(3, 4)
+
+require 'securerandom'
+
+puts SecureRandom.hex(16)
+puts SecureRandom.hex(32)
+puts SecureRandom.uuid
+puts SecureRandom.urlsafe_base64(24)
+puts SecureRandom.alphanumeric(12)
+puts SecureRandom.random_number(1_000_000)
+
+def generate_api_key
+  "sk_live_#{SecureRandom.hex(24)}"
+end
+
+def generate_token(length: 32)
+  SecureRandom.urlsafe_base64(length)
+end
+
+puts generate_api_key
+puts generate_token(length: 16)
+
+# Chapter 13 – Benchmark module
+
+require 'benchmark'
+
+n = 100_000
+
+Benchmark.bm(20) do |x|
+  x.report("string concat:") do
+    result = ""
+    n.times { |i| result = result + i.to_s }
+  end
+
+  x.report("string shovel:") do
+    result = ""
+    n.times { |i| result << i.to_s }
+  end
+
+  x.report("array + join:") do
+    parts = []
+    n.times { |i| parts << i.to_s }
+    result = parts.join
+  end
+end
+
+# Chapter 13 – Set and Struct
+
+require 'set'
+
+fruits  = Set.new(["apple", "banana", "cherry", "apple", "banana"])
+veggies = Set.new(["carrot", "banana", "spinach", "cherry"])
+
+puts fruits.inspect
+puts fruits.include?("apple")
+puts fruits.include?("grape")
+
+fruits.add("grape")
+fruits.add("apple")
+puts fruits.inspect
+
+puts "Union:        #{(fruits | veggies).inspect}"
+puts "Intersection: #{(fruits & veggies).inspect}"
+puts "Difference:   #{(fruits - veggies).inspect}"
+
+# Struct
+Point  = Struct.new(:x, :y)
+Person = Struct.new(:name, :age, :city)
+
+p1 = Point.new(3, 4)
+p2 = Point.new(0, 0)
+puts p1.x
+puts p1.y
+puts p1
+puts p1 == Point.new(3, 4)
+puts p1 == p2
+
+person = Person.new("Ana", 28, "Lisbon")
+puts person.name
+puts person.city
+person.age = 29
+puts person
+
+Color = Struct.new(:red, :green, :blue) do
+  def to_hex
+    "#%02X%02X%02X" % [red, green, blue]
+  end
+
+  def brightness
+    (red + green + blue) / 3.0
+  end
+end
+
+white  = Color.new(255, 255, 255)
+red    = Color.new(255, 0, 0)
+custom = Color.new(128, 64, 200)
+puts white.to_hex
+puts red.to_hex
+puts custom.to_hex
+puts custom.brightness.round(1)
+
+# Chapter 13 – open-uri and Net::HTTP
+
+require 'open-uri'
+require 'json'
+require 'net/http'
+
+# --- Simple GET with open-uri ---
+url = "https://jsonplaceholder.typicode.com/posts/1"
+
+begin
+  raw  = URI.open(url).read
+  data = JSON.parse(raw)
+  puts "Title:  #{data['title']}"
+  puts "Body:   #{data['body'][0..60]}..."
+  puts "UserID: #{data['userId']}"
+rescue OpenURI::HTTPError => e
+  puts "HTTP Error: #{e.message}"
+rescue SocketError => e
+  puts "Network unreachable: #{e.message}"
+end
+
+# --- POST with Net::HTTP ---
+uri = URI.parse("https://jsonplaceholder.typicode.com/posts")
+
+post_body = {
+  title:  "My New Post",
+  body:   "This is the content of my post.",
+  userId: 1
+}.to_json
+
+begin
+  http          = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl  = true
+  request       = Net::HTTP::Post.new(uri.path, "Content-Type" => "application/json")
+  request.body  = post_body
+  response      = http.request(request)
+  puts "Response status: #{response.code} #{response.message}"
+  data = JSON.parse(response.body)
+  puts "Created post with ID: #{data['id']}"
+rescue => e
+  puts "Request failed: #{e.class} - #{e.message}"
+end
