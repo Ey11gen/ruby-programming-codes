@@ -1,0 +1,129 @@
+# Chapter 4 – Truthiness and falsiness in Ruby
+
+puts !!true
+puts !!false
+puts !!nil
+puts !!0
+puts !!""
+puts !![]
+puts !!"hello"
+puts !!42
+
+# Chapter 4 – if, elsif, else, unless
+
+temperature = 35
+if temperature > 30
+  puts "It is a hot day."
+  puts "Stay hydrated and seek shade."
+end
+
+password_length = 5
+if password_length >= 8
+  puts "Password length is acceptable."
+else
+  puts "Password is too short. Use at least 8 characters."
+end
+
+score = 72
+if score >= 90
+  puts "Grade: A"
+elsif score >= 80
+  puts "Grade: B"
+elsif score >= 70
+  puts "Grade: C"
+elsif score >= 60
+  puts "Grade: D"
+else
+  puts "Grade: F"
+end
+
+logged_in = false
+unless logged_in
+  puts "Please log in to continue."
+end
+
+# Return value from if-else
+age    = 20
+status = if age >= 18
+  "adult"
+else
+  "minor"
+end
+puts "User status: #{status}"
+
+# Chapter 4 – case / when
+
+day = "Tuesday"
+case day
+when "Monday"
+  puts "Start of the work week."
+when "Tuesday", "Wednesday", "Thursday"
+  puts "Middle of the work week."
+when "Friday"
+  puts "Last work day of the week."
+when "Saturday", "Sunday"
+  puts "Weekend!"
+else
+  puts "Unknown day."
+end
+
+# case with ranges
+age = 25
+category = case age
+when 0..12
+  "child"
+when 13..17
+  "teenager"
+when 18..64
+  "adult"
+when 65..Float::INFINITY
+  "senior"
+else
+  "unknown"
+end
+puts "Age category: #{category}"
+
+# Chapter 4 – Inline conditionals and the ternary operator
+
+temperature = 22
+puts "Warm day!" if temperature > 20
+puts "Cold day!" unless temperature > 20
+
+age = 17
+puts "Access granted." if age >= 18
+puts "Access denied." unless age >= 18
+
+# Ternary operator
+age2   = 20
+status = age2 >= 18 ? "adult" : "minor"
+puts status
+
+balance = 500
+fee = balance >= 1000 ? 0 : 25
+puts "Service fee: $#{fee}"
+
+is_raining = true
+advice = is_raining ? "Bring an umbrella." : "No umbrella needed."
+puts advice
+
+# Chapter 4 – Combining conditions with &&, ||, !
+
+username = "alice"
+password = "secure123"
+
+if username == "alice" && password == "secure123"
+  puts "Login successful. Welcome, Alice!"
+else
+  puts "Login failed. Incorrect username or password."
+end
+
+temperature = 28
+humidity    = 85
+if temperature > 30 || humidity > 80
+  puts "Conditions are uncomfortable. Please take a break."
+end
+
+file_exists = false
+if !file_exists
+  puts "The file was not found. Please check the path."
+end
