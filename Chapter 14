@@ -1,0 +1,30 @@
+# Chapter 14 – Using installed gems
+# Run: gem install colorize   before running this file
+
+require 'colorize'
+
+puts "This text is red!".red
+puts "This text is green!".green
+puts "This text is blue and bold!".blue.bold
+puts "Custom background!".colorize(color: :white, background: :magenta)
+
+["Error", "Warning", "Success"].each_with_index do |msg, i|
+  colors = [:red, :yellow, :green]
+  puts msg.colorize(colors[i])
+end
+
+# Chapter 14 – Example Gemfile
+
+source "https://rubygems.org"
+
+ruby "3.3.0"
+
+gem "httparty",   "~> 0.21"
+gem "colorize",   "~> 1.1"
+gem "dotenv",     "~> 2.8"
+
+group :development, :test do
+  gem "rspec",    "~> 3.12"
+  gem "rubocop",  "~> 1.57"
+  gem "pry",      "~> 0.14"
+end
