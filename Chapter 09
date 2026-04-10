@@ -1,0 +1,265 @@
+# Chapter 9 – Class inheritance
+
+class Animal
+  attr_reader :name, :age
+
+  def initialize(name, age)
+    @name = name
+    @age  = age
+  end
+
+  def eat(food)
+    puts "#{@name} is eating #{food}."
+  end
+
+  def sleep_now
+    puts "#{@name} is sleeping peacefully."
+  end
+
+  def introduce
+    puts "I am #{@name}, and I am #{@age} years old."
+  end
+
+  def to_s
+    "#{self.class.name}(#{@name}, age #{@age})"
+  end
+end
+
+class Dog < Animal
+  def fetch(item)
+    puts "#{@name} fetches the #{item} enthusiastically!"
+  end
+
+  def speak
+    puts "#{@name} says: Woof! Woof!"
+  end
+end
+
+class Cat < Animal
+  def purr
+    puts "#{@name} purrs contentedly."
+  end
+
+  def speak
+    puts "#{@name} says: Meow!"
+  end
+end
+
+dog = Dog.new("Rex", 3)
+cat = Cat.new("Luna", 5)
+
+dog.introduce
+dog.eat("kibble")
+dog.sleep_now
+dog.fetch("ball")
+dog.speak
+puts dog
+
+cat.introduce
+cat.eat("tuna")
+cat.purr
+cat.speak
+puts cat
+
+puts dog.is_a?(Dog)
+puts dog.is_a?(Animal)
+puts cat.is_a?(Dog)
+
+# Chapter 9 – Method overriding and super
+
+class Vehicle
+  attr_reader :make, :model, :year, :speed
+
+  def initialize(make, model, year)
+    @make  = make
+    @model = model
+    @year  = year
+    @speed = 0
+  end
+
+  def accelerate(amount)
+    @speed += amount
+    puts "#{@make} #{@model} accelerates to #{@speed} km/h."
+  end
+
+  def describe
+    puts "#{@year} #{@make} #{@model}"
+  end
+end
+
+class ElectricVehicle < Vehicle
+  attr_reader :battery_level
+
+  def initialize(make, model, year, battery_capacity)
+    super(make, model, year)
+    @battery_capacity = battery_capacity
+    @battery_level    = 100
+  end
+
+  def accelerate(amount)
+    drain = amount * 0.5
+    @battery_level -= drain
+    super(amount)
+    puts "Battery: #{@battery_level.round(1)}%"
+  end
+
+  def describe
+    super
+    puts "  Battery capacity: #{@battery_capacity} kWh"
+    puts "  Current charge:   #{@battery_level}%"
+  end
+end
+
+car = Vehicle.new("Toyota", "Camry", 2022)
+ev  = ElectricVehicle.new("Tesla", "Model 3", 2023, 75)
+
+car.describe
+car.accelerate(60)
+puts
+ev.describe
+ev.accelerate(80)
+ev.describe
+
+# Chapter 9 – Polymorphism and duck typing
+
+class Dog
+  attr_reader :name
+  def initialize(name); @name = name; end
+  def speak; puts "#{@name} says: Woof!"; end
+end
+
+class Cat
+  attr_reader :name
+  def initialize(name); @name = name; end
+  def speak; puts "#{@name} says: Meow!"; end
+end
+
+class Parrot
+  attr_reader :name
+  def initialize(name, phrase); @name = name; @phrase = phrase; end
+  def speak; puts "#{@name} says: #{@phrase}!"; end
+end
+
+class Robot
+  attr_reader :name
+  def initialize(name); @name = name; end
+  def speak; puts "#{@name} says: BEEP BOOP BEEP."; end
+end
+
+speakers = [
+  Dog.new("Rex"),
+  Cat.new("Luna"),
+  Parrot.new("Polly", "Pretty bird"),
+  Robot.new("R2D2"),
+]
+
+speakers.each { |speaker| speaker.speak }
+
+# Chapter 9 – Polymorphism through inheritance
+
+class Shape
+  def area
+    raise NotImplementedError, "#{self.class} must implement area"
+  end
+
+  def perimeter
+    raise NotImplementedError, "#{self.class} must implement perimeter"
+  end
+
+  def describe
+    puts "#{self.class.name}: area=#{area.round(3)}, perimeter=#{perimeter.round(3)}"
+  end
+end
+
+class Circle < Shape
+  def initialize(radius)
+    @radius = radius
+  end
+
+  def area
+    Math::PI * @radius ** 2
+  end
+
+  def perimeter
+    2 * Math::PI * @radius
+  end
+end
+
+class Rectangle < Shape
+  def initialize(width, height)
+    @width  = width
+    @height = height
+  end
+
+  def area
+    @width * @height
+  end
+
+  def perimeter
+    2 * (@width + @height)
+  end
+end
+
+class Triangle < Shape
+  def initialize(base, height, side_a, side_b, side_c)
+    @base   = base
+    @height = height
+    @side_a = side_a
+    @side_b = side_b
+    @side_c = side_c
+  end
+
+  def area
+    0.5 * @base * @height
+  end
+
+  def perimeter
+    @side_a + @side_b + @side_c
+  end
+end
+
+shapes = [
+  Circle.new(5),
+  Rectangle.new(8, 3),
+  Triangle.new(6, 4, 5, 5, 6),
+]
+
+shapes.each { |shape| shape.describe }
+total_area = shapes.sum(&:area)
+puts "Total area of all shapes: #{total_area.round(3)}"
+
+# Chapter 9 – Comparable module
+
+class Product
+  include Comparable
+
+  attr_reader :name, :price
+
+  def initialize(name, price)
+    @name  = name
+    @price = price.to_f
+  end
+
+  def <=>(other)
+    @price <=> other.price
+  end
+
+  def to_s
+    "#{@name} ($#{format('%.2f', @price)})"
+  end
+end
+
+items = [
+  Product.new("Laptop",     999.99),
+  Product.new("Mouse",       29.99),
+  Product.new("Keyboard",    89.99),
+  Product.new("Monitor",    349.99),
+  Product.new("Headphones",  79.99),
+]
+
+puts "Cheapest: #{items.min}"
+puts "Most expensive: #{items.max}"
+puts "Sorted by price:"
+items.sort.each { |item| puts "  #{item}" }
+puts items[0] < items[2]
+puts items[3].between?(items[1], items[0])
