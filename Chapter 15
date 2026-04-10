@@ -1,0 +1,237 @@
+# Chapter 15 – Pure methods and avoiding side effects
+
+def add(a, b)
+  a + b
+end
+
+def full_name(first, last)
+  "#{first.strip} #{last.strip}".squeeze(" ")
+end
+
+def celsius_to_fahrenheit(c)
+  (c * 9.0 / 5.0) + 32
+end
+
+def classify_temperature(celsius)
+  case celsius
+  when -Float::INFINITY...0 then "freezing"
+  when 0...15              then "cold"
+  when 15...25             then "comfortable"
+  when 25...35             then "warm"
+  else                          "hot"
+  end
+end
+
+puts add(3, 4)
+puts add(3, 4)
+puts full_name("  Marie  ", "Curie ")
+puts celsius_to_fahrenheit(100)
+puts classify_temperature(22)
+
+# Chapter 15 – Immutability and frozen objects
+
+config = {
+  host:     "localhost",
+  port:     5432,
+  database: "production"
+}.freeze
+
+puts config[:host]
+puts config.frozen?
+
+begin
+  config[:host] = "remote.server.com"
+rescue FrozenError => e
+  puts "Cannot modify frozen hash: #{e.message}"
+end
+
+ALLOWED_ROLES = ["admin", "editor", "viewer"].freeze
+puts ALLOWED_ROLES.include?("admin")
+puts ALLOWED_ROLES.frozen?
+
+begin
+  ALLOWED_ROLES << "superuser"
+rescue FrozenError => e
+  puts "Cannot modify frozen array: #{e.message}"
+end
+
+# Immutable-style programming (using non-bang methods)
+original  = [5, 2, 8, 1, 9, 3, 7, 4, 6]
+sorted    = original.sort
+evens     = original.select(&:even?)
+doubled   = original.map { |n| n * 2 }
+without_5 = original.reject { |n| n == 5 }
+
+puts "Original:  #{original.inspect}"
+puts "Sorted:    #{sorted.inspect}"
+puts "Evens:     #{evens.inspect}"
+puts "Doubled:   #{doubled.inspect}"
+puts "Without 5: #{without_5.inspect}"
+
+name      = "  hello world  "
+processed = name.strip.split.map(&:capitalize).join(" ")
+puts "Original:  '#{name}'"
+puts "Processed: '#{processed}'"
+
+# Chapter 15 – Method chaining and data transformation pipelines
+
+employees = [
+  { name: "Alice",  dept: "Engineering", salary: 85_000, years: 5  },
+  { name: "Bob",    dept: "Marketing",   salary: 62_000, years: 2  },
+  { name: "Carlos", dept: "Engineering", salary: 92_000, years: 8  },
+  { name: "Diana",  dept: "HR",          salary: 58_000, years: 3  },
+  { name: "Elena",  dept: "Engineering", salary: 78_000, years: 4  },
+  { name: "Farid",  dept: "Marketing",   salary: 71_000, years: 6  },
+  { name: "Grace",  dept: "Engineering", salary: 110_000, years: 12 },
+  { name: "Hassan", dept: "HR",          salary: 65_000, years: 7  },
+]
+
+result = employees
+  .select { |e| e[:dept] == "Engineering" }
+  .reject { |e| e[:salary] > 100_000 }
+  .sort_by { |e| e[:salary] }
+  .map { |e| "#{e[:name]}: $#{e[:salary]}" }
+
+puts "Engineering employees (salary <= $100,000), sorted:"
+result.each { |line| puts "  #{line}" }
+
+by_dept = employees
+  .group_by { |e| e[:dept] }
+  .transform_values do |staff|
+    {
+      count:      staff.length,
+      avg_salary: (staff.sum { |e| e[:salary] } / staff.length.to_f).round(0),
+      avg_years:  (staff.sum { |e| e[:years]  } / staff.length.to_f).round(1),
+    }
+  end
+
+by_dept.each do |dept, stats|
+  puts "#{dept}: #{stats[:count]} employees, avg salary $#{stats[:avg_salary]}, avg tenure #{stats[:avg_years]} years"
+end
+
+# Chapter 15 – Chainable QueryBuilder DSL
+
+class QueryBuilder
+  def initialize(data)
+    @data      = data
+    @filters   = []
+    @transform = nil
+    @limit_val = nil
+    @sort_key  = nil
+    @sort_dir  = :asc
+  end
+
+  def where(&block)
+    @filters << block
+    self
+  end
+
+  def transform(&block)
+    @transform = block
+    self
+  end
+
+  def order_by(key, direction = :asc)
+    @sort_key = key
+    @sort_dir = direction
+    self
+  end
+
+  def limit(n)
+    @limit_val = n
+    self
+  end
+
+  def execute
+    result = @data.dup
+    @filters.each { |f| result = result.select(&f) }
+    if @sort_key
+      result = result.sort_by { |item| item[@sort_key] }
+      result = result.reverse if @sort_dir == :desc
+    end
+    result = result.first(@limit_val) if @limit_val
+    result = result.map(&@transform)  if @transform
+    result
+  end
+end
+
+records = [
+  { name: "Alice",  score: 88, active: true  },
+  { name: "Bob",    score: 72, active: false  },
+  { name: "Carlos", score: 95, active: true   },
+  { name: "Diana",  score: 81, active: true   },
+  { name: "Elena",  score: 67, active: false  },
+  { name: "Farid",  score: 90, active: true   },
+]
+
+results = QueryBuilder.new(records)
+  .where { |r| r[:active] }
+  .where { |r| r[:score] >= 80 }
+  .order_by(:score, :desc)
+  .limit(3)
+  .transform { |r| "#{r[:name]}: #{r[:score]}" }
+  .execute
+
+puts "Top 3 active members with score >= 80:"
+results.each { |r| puts "  #{r}" }
+
+# Chapter 15 – Lazy evaluation and Enumerator
+
+# Lazy on an infinite range
+natural_numbers = (1..Float::INFINITY).lazy
+
+first_five_evens = natural_numbers.select { |n| n.even? }.first(5)
+puts first_five_evens.inspect
+
+first_five_squares_over_50 = natural_numbers
+  .map    { |n| n ** 2 }
+  .select { |n| n > 50 }
+  .first(5)
+puts first_five_squares_over_50.inspect
+
+# Custom infinite Fibonacci generator
+fibonacci = Enumerator.new do |yielder|
+  a, b = 0, 1
+  loop do
+    yielder << a
+    a, b = b, a + b
+  end
+end
+
+puts fibonacci.first(10).inspect
+
+large_fibs = fibonacci.lazy.select { |n| n > 1000 }.first(5)
+puts large_fibs.inspect
+
+# Chapter 15 – Procs, lambdas, and function composition
+
+double    = ->(n) { n * 2 }
+add_ten   = ->(n) { n + 10 }
+square    = ->(n) { n ** 2 }
+to_string = ->(n) { "Value: #{n}" }
+positive  = ->(n) { n > 0 }
+
+puts double.(5)
+puts add_ten.(5)
+puts square.(5)
+
+data = [-3, 5, -1, 8, 2, -6, 4, 9]
+
+result = data
+  .select(&positive)
+  .map(&double)
+  .map(&add_ten)
+  .map(&to_string)
+
+result.each { |r| puts r }
+
+# >> composition operator (Ruby 2.6+)
+double_then_add = double >> add_ten
+add_then_double = add_ten >> double
+full_pipeline   = double >> add_ten >> square
+
+puts double_then_add.(5)
+puts add_then_double.(5)
+puts full_pipeline.(3)
+
+[1, 2, 3, 4, 5].map(&full_pipeline).each { |v| puts v }
