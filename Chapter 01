@@ -1,0 +1,59 @@
+# Chapter 1 – Getting Started with Ruby
+# Example: Hello, World! and basic output
+
+puts "Hello, World!"
+puts "This is my first Ruby program."
+puts "Ruby is a beautiful language."
+
+# Chapter 1 – puts vs print vs p
+
+puts "Hello from puts"
+print "Hello from print"
+print " and still on the same line"
+puts ""
+p "Hello from p"
+p 42
+p nil
+
+# Chapter 1 – Arithmetic in IRB
+# Run these lines one at a time in IRB, or run this file with: ruby 03_irb_arithmetic.rb
+
+puts 2 + 3
+puts 10 - 4
+puts 6 * 7
+puts 20 / 4
+puts 2 ** 8
+
+puts "Hello, " + "World!"
+puts "Ruby" + " " + "is" + " " + "wonderful"
+
+# Chapter 1 – Sequential execution
+
+puts "Step 1: Ruby reads and runs this line first."
+puts "Step 2: Then it moves down to this line."
+puts "Step 3: Then this one comes next."
+puts "Step 4: Ruby finishes here at the last line."
+
+# Chapter 1 – Understanding error messages
+# Line 3 contains a deliberate typo: pust instead of puts
+# Run this file to see the error message Ruby produces.
+
+puts "This line runs perfectly."
+puts "This line also runs perfectly."
+# pust "This line contains a typo in the method name."  # Uncomment to see the error
+puts "Uncomment line 7 to trigger a NoMethodError and see Ruby's error output."
+
+# Chapter 1 – Comments in Ruby
+
+# This entire line is a comment. Ruby ignores it completely.
+puts "This line runs and displays its text on screen."
+puts "This runs too." # Everything after the hash symbol is ignored.
+# puts "This entire puts call is commented out. It will not run."
+
+=begin
+This is a multi-line comment block.
+Everything between the =begin and =end markers is completely ignored.
+You can write as many lines of explanation here as you need.
+=end
+
+puts "This code runs normally after the comment block closes."
