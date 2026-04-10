@@ -1,0 +1,293 @@
+#!/usr/bin/env ruby
+# Chapter 19 – Command-line tool with OptionParser
+# Usage: ruby 01_option_parser_tool.rb --help
+#        ruby 01_option_parser_tool.rb -f csv -v myfile.txt
+
+require 'optparse'
+require 'date'
+
+options = {
+  format:    "text",
+  output:    nil,
+  verbose:   false,
+  max_lines: 100
+}
+
+parser = OptionParser.new do |opts|
+  opts.banner = "Usage: report_tool.rb [options] INPUT_FILE"
+  opts.separator ""
+  opts.separator "Options:"
+
+  opts.on("-f", "--format FORMAT", ["text", "csv", "json"],
+          "Output format: text, csv, or json (default: text)") do |fmt|
+    options[:format] = fmt
+  end
+
+  opts.on("-o", "--output FILE",
+          "Write output to FILE instead of stdout") do |file|
+    options[:output] = file
+  end
+
+  opts.on("-n", "--max-lines N", Integer,
+          "Maximum lines to process (default: 100)") do |n|
+    options[:max_lines] = n
+  end
+
+  opts.on("-v", "--verbose", "Show detailed processing information") do
+    options[:verbose] = true
+  end
+
+  opts.on("-h", "--help", "Show this help message") do
+    puts opts
+    exit
+  end
+end
+
+begin
+  parser.parse!(ARGV)
+rescue OptionParser::InvalidOption => e
+  puts "Error: #{e.message}"
+  puts parser
+  exit(1)
+end
+
+if ARGV.empty?
+  puts "Error: INPUT_FILE is required."
+  puts parser
+  exit(1)
+end
+
+input_file = ARGV[0]
+
+puts "Processing: #{input_file}"                         if options[:verbose]
+puts "Format:     #{options[:format]}"                   if options[:verbose]
+puts "Max lines:  #{options[:max_lines]}"                if options[:verbose]
+puts "Output to:  #{options[:output] || 'stdout'}"       if options[:verbose]
+puts "Report generation complete for: #{input_file}"
+
+#!/usr/bin/env ruby
+# Chapter 19 – File organizer: sorts files into subdirectories by extension
+# Usage: ruby 02_file_organizer.rb [directory] [--dry-run]
+
+require 'fileutils'
+
+EXTENSION_CATEGORIES = {
+  "images"    => %w[.jpg .jpeg .png .gif .bmp .webp .svg .ico],
+  "documents" => %w[.pdf .doc .docx .txt .md .rtf .odt .xlsx .csv],
+  "videos"    => %w[.mp4 .mkv .avi .mov .wmv .flv .webm],
+  "audio"     => %w[.mp3 .wav .flac .aac .ogg .wma .m4a],
+  "archives"  => %w[.zip .tar .gz .rar .7z .bz2],
+  "code"      => %w[.rb .py .js .ts .html .css .java .go .rs .sh],
+}.freeze
+
+def find_category(extension)
+  EXTENSION_CATEGORIES.each do |category, extensions|
+    return category if extensions.include?(extension.downcase)
+  end
+  "other"
+end
+
+def organize_directory(source_dir, dry_run: false)
+  moved   = 0
+  skipped = 0
+  errors  = 0
+
+  Dir.glob(File.join(source_dir, "*")).each do |filepath|
+    next unless File.file?(filepath)
+
+    filename  = File.basename(filepath)
+    extension = File.extname(filepath)
+    category  = find_category(extension)
+
+    dest_dir  = File.join(source_dir, category)
+    dest_path = File.join(dest_dir, filename)
+
+    if File.exist?(dest_path) && filepath != dest_path
+      puts "  SKIP (exists): #{filename}"
+      skipped += 1
+      next
+    end
+
+    puts "  #{dry_run ? 'WOULD MOVE' : 'MOVING'}: #{filename} -> #{category}/"
+
+    unless dry_run
+      begin
+        FileUtils.mkdir_p(dest_dir)
+        FileUtils.mv(filepath, dest_path)
+        moved += 1
+      rescue => e
+        puts "  ERROR: #{e.message}"
+        errors += 1
+      end
+    end
+  end
+
+  puts "\nSummary: #{moved} moved, #{skipped} skipped, #{errors} errors."
+end
+
+source = ARGV[0] || Dir.pwd
+dry    = ARGV.include?("--dry-run")
+
+puts "Organizing files in: #{File.expand_path(source)}"
+puts "(DRY RUN - no files will be moved)" if dry
+puts
+organize_directory(source, dry_run: dry)
+
+# Chapter 19 – Web scraping with Nokogiri
+# Install: gem install nokogiri
+
+require 'nokogiri'
+require 'open-uri'
+require 'json'
+
+# --- Parse a local HTML string ---
+def parse_local_html(html_content)
+  doc = Nokogiri::HTML(html_content)
+
+  puts "All links on the page:"
+  doc.css("a[href]").each do |link|
+    href = link["href"]
+    text = link.text.strip
+    puts "  #{text.empty? ? '(no text)' : text}: #{href}" unless href.start_with?("#")
+  end
+
+  puts "\nAll headings:"
+  doc.css("h1, h2, h3").each do |heading|
+    level = heading.name
+    puts "  [#{level}] #{heading.text.strip}"
+  end
+
+  puts "\nAll images:"
+  doc.css("img[src]").each do |img|
+    puts "  src=#{img['src']} alt=#{img['alt'] || '(none)'}"
+  end
+end
+
+sample_html = <<~HTML
+  <html>
+    <body>
+      <h1>Ruby News</h1>
+      <h2>Latest Releases</h2>
+      <p>Check out <a href="https://ruby-lang.org">Ruby's website</a> for updates.</p>
+      <img src="ruby-logo.png" alt="Ruby Logo">
+      <h3>Community Resources</h3>
+      <a href="#section1">Jump to section</a>
+      <a href="https://rubygems.org">RubyGems.org</a>
+      <a href="https://rubyweekly.com">Ruby Weekly</a>
+    </body>
+  </html>
+HTML
+
+parse_local_html(sample_html)
+
+# --- Live scraping example (uncomment to use) ---
+# def scrape_page(url)
+#   puts "Fetching #{url}..."
+#   html = URI.open(url).read
+#   doc  = Nokogiri::HTML(html)
+#   doc.css("h1, h2").first(5).each do |heading|
+#     puts heading.text.strip
+#   end
+# rescue OpenURI::HTTPError => e
+#   puts "HTTP Error: #{e.message}"
+# rescue SocketError => e
+#   puts "Network error: #{e.message}"
+# end
+#
+# scrape_page("https://www.ruby-lang.org/en/news/")
+
+# Chapter 19 – Running external commands from Ruby
+
+# system: runs command, prints output to terminal, returns true/false
+system_result = system("echo Hello from a system call")
+puts "Command succeeded: #{system_result}"
+puts
+
+# %x(): runs command and captures its output as a string
+output = %x(echo "This output is captured")
+puts "Captured: #{output.chomp}"
+puts
+
+# Check exit status with $?
+git_log = %x(git log --oneline -5 2>&1)
+if $?.success?
+  puts "Recent commits:"
+  git_log.each_line { |line| puts "  #{line.chomp}" }
+else
+  puts "Not a git repository or git not installed."
+end
+puts
+
+# Open3 for full control over stdin, stdout, stderr separately
+require 'open3'
+
+stdout, stderr, status = Open3.capture3("ruby", "--version")
+puts "Ruby version output: #{stdout.chomp}"
+puts "Exit status: #{status.exitstatus}"
+puts
+
+# Open3.popen2e for streaming output as command runs
+Open3.popen2e("ls", "-la") do |stdin, stdout_err, thread|
+  stdout_err.each_line { |line| puts line }
+  puts "Process exit status: #{thread.value.exitstatus}"
+end
+
+#!/usr/bin/env ruby
+# Chapter 19 – Practical automation: log file monitor
+# Demonstrates file watching, pattern matching, and reporting
+
+require 'date'
+
+# Simulate a log file for demonstration
+SAMPLE_LOG = <<~LOG
+  2024-03-15 08:01:12 INFO  Server started on port 3000
+  2024-03-15 08:01:15 INFO  Database connection established
+  2024-03-15 08:05:22 WARN  High memory usage: 78%
+  2024-03-15 08:07:44 ERROR Cannot connect to cache service
+  2024-03-15 08:07:45 ERROR Retry 1/3 for cache connection
+  2024-03-15 08:07:47 INFO  Cache connection restored
+  2024-03-15 08:12:03 WARN  Slow query detected: 2300ms
+  2024-03-15 08:15:55 ERROR Unhandled exception in worker thread
+  2024-03-15 08:30:00 INFO  Health check passed
+  2024-03-15 08:45:10 WARN  Disk usage at 85%
+LOG
+
+def parse_log_entries(log_text)
+  entries = []
+  log_text.each_line do |line|
+    line = line.chomp
+    next if line.empty?
+    match = line.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (INFO|WARN|ERROR)\s+(.+)/)
+    next unless match
+    entries << { timestamp: match[1], level: match[2], message: match[3] }
+  end
+  entries
+end
+
+def analyze_log(entries)
+  by_level = entries.group_by { |e| e[:level] }
+
+  puts "=" * 55
+  puts "Log Analysis Report"
+  puts "=" * 55
+  puts "Total entries: #{entries.length}"
+  puts "INFO:  #{by_level['INFO']&.length  || 0}"
+  puts "WARN:  #{by_level['WARN']&.length  || 0}"
+  puts "ERROR: #{by_level['ERROR']&.length || 0}"
+  puts
+
+  if by_level['ERROR']
+    puts "Errors found:"
+    by_level['ERROR'].each { |e| puts "  [#{e[:timestamp]}] #{e[:message]}" }
+    puts
+  end
+
+  if by_level['WARN']
+    puts "Warnings:"
+    by_level['WARN'].each { |e| puts "  [#{e[:timestamp]}] #{e[:message]}" }
+  end
+  puts "=" * 55
+end
+
+entries = parse_log_entries(SAMPLE_LOG)
+analyze_log(entries)
