@@ -1,0 +1,189 @@
+# Chapter 7 – Defining methods and return values
+
+def say_hello
+  puts "Hello! Welcome to Ruby programming."
+  puts "We are glad you are here."
+end
+
+say_hello
+say_hello
+
+def square(n)
+  n * n
+end
+
+def add(a, b)
+  a + b
+end
+
+def full_name(first, last)
+  "#{first} #{last}"
+end
+
+puts square(7)
+puts add(15, 28)
+puts full_name("Marie", "Curie")
+puts square(5) + square(3)
+
+# Explicit return (guard clause)
+def safe_divide(a, b)
+  if b == 0
+    return "Cannot divide by zero."
+  end
+  a.to_f / b
+end
+
+puts safe_divide(10, 2)
+puts safe_divide(7, 0)
+puts safe_divide(9, 4)
+
+# Chapter 7 – Required, optional, keyword, and splat parameters
+
+# Required parameters
+def introduce(name, age, city)
+  puts "My name is #{name}."
+  puts "I am #{age} years old."
+  puts "I live in #{city}."
+end
+introduce("Sofia", 31, "Athens")
+
+# Optional parameters with defaults
+def greet(name, greeting = "Hello", punctuation = "!")
+  puts "#{greeting}, #{name}#{punctuation}"
+end
+greet("Alice")
+greet("Bob", "Good morning")
+greet("Carlos", "Welcome", ".")
+
+# Keyword parameters
+def create_user(name:, age:, email:, role: "member")
+  puts "Creating user: #{name}"
+  puts "  Age:   #{age}"
+  puts "  Email: #{email}"
+  puts "  Role:  #{role}"
+end
+create_user(name: "Aisha", age: 25, email: "aisha@example.com")
+create_user(email: "raj@example.com", name: "Raj", age: 33, role: "admin")
+
+# Splat parameters
+def sum_all(*numbers)
+  total = 0
+  numbers.each { |n| total += n }
+  total
+end
+puts sum_all(1, 2, 3)
+puts sum_all(10, 20, 30, 40, 50)
+puts sum_all
+
+def log(level, *messages)
+  messages.each do |msg|
+    puts "[#{level.upcase}] #{msg}"
+  end
+end
+log("info", "Server started.", "Listening on port 3000.")
+log("error", "Database connection failed.")
+
+# Chapter 7 – Predicate methods, bang methods, and aliases
+
+def valid_email?(email)
+  email.include?("@") && email.include?(".")
+end
+
+def adult?(age)
+  age >= 18
+end
+
+def empty_string?(str)
+  str.strip.length == 0
+end
+
+puts valid_email?("user@example.com")
+puts valid_email?("notanemail")
+puts adult?(20)
+puts adult?(15)
+puts empty_string?("   ")
+puts empty_string?("hello")
+
+# Bang method
+def normalize!(text)
+  text.strip!
+  text.downcase!
+  text.gsub!(/\s+/, "_")
+  text
+end
+
+label = "  Hello World  "
+puts label.inspect
+normalize!(label)
+puts label.inspect
+
+# Method alias
+def calculate_area(width, height)
+  width * height
+end
+alias area calculate_area
+
+puts calculate_area(5, 8)
+puts area(5, 8)
+
+# Chapter 7 – Variable scope and method boundaries
+
+message = "I am defined outside the method."
+
+def show_message(msg)
+  puts msg
+end
+
+show_message(message)
+
+def modify_local
+  local_var = "I exist only inside this method."
+  puts local_var
+end
+
+modify_local
+# puts local_var  # Uncommenting this raises NameError
+
+# Chapter 7 – Organizing code: receipt generator
+
+def format_currency(amount)
+  "$#{format('%.2f', amount)}"
+end
+
+def calculate_subtotal(items)
+  items.sum { |item| item[:price] * item[:quantity] }
+end
+
+def calculate_tax(subtotal, rate = 0.08)
+  subtotal * rate
+end
+
+def calculate_total(subtotal, tax)
+  subtotal + tax
+end
+
+def print_receipt(customer, items)
+  puts "=" * 40
+  puts "Receipt for #{customer}"
+  puts "=" * 40
+  items.each do |item|
+    line_total = item[:price] * item[:quantity]
+    puts "#{item[:name].ljust(20)} #{item[:quantity]} x #{format_currency(item[:price])} = #{format_currency(line_total)}"
+  end
+  puts "-" * 40
+  subtotal = calculate_subtotal(items)
+  tax      = calculate_tax(subtotal)
+  total    = calculate_total(subtotal, tax)
+  puts "Subtotal: #{format_currency(subtotal).rjust(28)}"
+  puts "Tax (8%): #{format_currency(tax).rjust(28)}"
+  puts "Total:    #{format_currency(total).rjust(28)}"
+  puts "=" * 40
+end
+
+order_items = [
+  { name: "Ruby Programming Book", price: 39.99, quantity: 1 },
+  { name: "USB-C Cable",           price:  9.99, quantity: 2 },
+  { name: "Mechanical Keyboard",   price: 89.99, quantity: 1 },
+]
+
+print_receipt("Alice Martin", order_items)
