@@ -1,0 +1,182 @@
+<%# Chapter 18 – reusable form partial %>
+
+<%= form_with(model: task) do |form| %>
+  <% if task.errors.any? %>
+    <div class="errors">
+      <h3><%= task.errors.count %> error(s) prevented saving:</h3>
+      <ul>
+        <% task.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :title %>
+    <%= form.text_field :title, placeholder: "Enter task title" %>
+  </div>
+
+  <div>
+    <%= form.label :description %>
+    <%= form.text_area :description, rows: 4 %>
+  </div>
+
+  <div>
+    <%= form.label :priority %>
+    <%= form.select :priority, Task::PRIORITY_LABELS.map { |v, l| [l, v] }, {}, class: "select" %>
+  </div>
+
+  <div>
+    <%= form.label :completed %>
+    <%= form.check_box :completed %>
+  </div>
+
+  <%= form.submit %>
+<% end %>
+
+# Chapter 18 – Database migration for tasks table
+
+class CreateTasks < ActiveRecord::Migration[7.1]
+  def change
+    create_table :tasks do |t|
+      t.string  :title,       null: false
+      t.text    :description
+      t.boolean :completed,   default: false, null: false
+      t.integer :priority,    default: 0
+      t.timestamps
+    end
+  end
+end
+
+<%# Chapter 18 – index view %>
+
+<h1>Task Manager</h1>
+
+<% if notice %>
+  <div class="notice"><%= notice %></div>
+<% end %>
+
+<%= link_to "New Task", new_task_path, class: "btn btn-primary" %>
+
+<% if @tasks.any? %>
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @tasks.each do |task| %>
+        <tr class="<%= task.completed? ? 'completed' : 'pending' %>">
+          <td><%= task.title %></td>
+          <td><%= task.priority_label %></td>
+          <td><%= task.completed? ? "Done" : "Pending" %></td>
+          <td>
+            <%= link_to "View",   task_path(task),      class: "btn" %>
+            <%= link_to "Edit",   edit_task_path(task), class: "btn" %>
+            <%= link_to "Delete", task_path(task),
+                        data: { turbo_method: :delete, turbo_confirm: "Are you sure?" },
+                        class: "btn btn-danger" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p>No tasks yet. Create your first task!</p>
+<% end %>
+
+# Chapter 18 – Rails routes
+
+Rails.application.routes.draw do
+  resources :tasks
+  root 'tasks#index'
+end
+
+# Chapter 18 – Task model with validations and scopes
+
+class Task < ApplicationRecord
+  validates :title,    presence: true, length: { minimum: 3, maximum: 200 }
+  validates :priority, inclusion: { in: 0..5, message: "must be between 0 and 5" }
+
+  PRIORITY_LABELS = {
+    0 => "None",
+    1 => "Low",
+    2 => "Normal",
+    3 => "High",
+    4 => "Urgent",
+    5 => "Critical"
+  }.freeze
+
+  scope :completed,     -> { where(completed: true)  }
+  scope :pending,       -> { where(completed: false) }
+  scope :high_priority, -> { where("priority >= ?", 3) }
+
+  def priority_label
+    PRIORITY_LABELS[priority] || "Unknown"
+  end
+
+  def complete!
+    update!(completed: true)
+  end
+
+  def to_s
+    "[#{priority_label}] #{title}"
+  end
+end
+
+# Chapter 18 – TasksController (all 7 RESTful actions)
+
+class TasksController < ApplicationController
+  before_action :set_task, only: [:show, :edit, :update, :destroy]
+
+  def index
+    @tasks = Task.all.order(created_at: :desc)
+  end
+
+  def show
+  end
+
+  def new
+    @task = Task.new
+  end
+
+  def create
+    @task = Task.new(task_params)
+    if @task.save
+      redirect_to @task, notice: "Task created successfully."
+    else
+      render :new, status: :unprocessable_entity
+    end
+  end
+
+  def edit
+  end
+
+  def update
+    if @task.update(task_params)
+      redirect_to @task, notice: "Task updated successfully."
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    @task.destroy
+    redirect_to tasks_url, notice: "Task deleted."
+  end
+
+  private
+
+  def set_task
+    @task = Task.find(params[:id])
+  end
+
+  def task_params
+    params.require(:task).permit(:title, :description, :completed, :priority)
+  end
+end
