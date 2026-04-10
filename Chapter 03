@@ -1,0 +1,135 @@
+# Chapter 3 – String literals, escape sequences, and heredocs
+
+greeting  = 'Hello, World!'
+sentence  = 'Ruby\'s syntax is clear.'
+backslash = 'One backslash: \\'
+puts greeting
+puts sentence
+puts backslash
+
+# Double-quoted escape sequences
+puts "Line one\nLine two"
+puts "Column one\tColumn two"
+puts "She said \"hello\" to me"
+puts "One backslash: \\"
+
+# Heredoc (strips leading whitespace with <<~)
+message = <<~TEXT
+  Dear Reader,
+  Welcome to Ruby programming.
+  We hope you enjoy the journey.
+TEXT
+puts message
+
+# String mutability and freeze
+greeting_str = "Hello"
+greeting_str << ", World!"
+puts greeting_str
+
+frozen_str = "Cannot change".freeze
+puts frozen_str.frozen?
+begin
+  frozen_str << " this"
+rescue FrozenError => e
+  puts "FrozenError: #{e.message}"
+end
+
+# Chapter 3 – String interpolation
+
+name = "Elena"
+age  = 27
+city = "Madrid"
+
+puts "Hello, my name is #{name}."
+puts "I am #{age} years old."
+puts "Next year I will be #{age + 1}."
+puts "I live in #{city.upcase}."
+puts "Two squared is #{2 ** 2}."
+puts "#{name} lives in #{city}. She is #{age} years old."
+
+# Interpolation vs concatenation comparison
+score = 1500
+using_plus          = "Your score is " + score.to_s + " points."
+using_interpolation = "Your score is #{score} points."
+puts using_plus
+puts using_interpolation
+
+# Chapter 3 – Essential string methods
+
+text = "  Hello, Ruby World!  "
+puts text.upcase
+puts text.downcase
+puts text.capitalize
+puts text.swapcase
+puts text.strip
+puts text.lstrip
+puts text.rstrip
+puts text.length
+puts text.strip.length
+
+sentence = "Ruby is a beautiful programming language."
+puts sentence.include?("beautiful")
+puts sentence.include?("Python")
+puts sentence.start_with?("Ruby")
+puts sentence.end_with?("language.")
+puts sentence.index("beautiful")
+puts sentence.count("a")
+
+original = "Hello, World!"
+puts original.reverse
+puts original.gsub("l", "L")
+puts original.sub("World", "Ruby")
+puts original.delete("lo")
+puts original.squeeze("l")
+
+# split and join
+csv_line = "Alice,30,Madrid,Engineer"
+parts = csv_line.split(",")
+puts parts.inspect
+puts parts.length
+puts parts[0]
+puts parts[2]
+
+words = ["Ruby", "is", "wonderful"]
+puts words.join(" ")
+puts words.join(", ")
+puts words.join
+
+# Formatting
+puts "Ruby".center(20)
+puts "Ruby".center(20, "*")
+puts "Ruby".ljust(20, ".")
+puts "Ruby".rjust(20, ".")
+
+# Chapter 3 – Regular expressions and pattern matching
+
+text = "Welcome to Ruby programming in 2024."
+puts text.match?(/Ruby/)
+puts text.match?(/Python/)
+puts text.match?(/[0-9]+/)
+puts text.match?(/\Awelcome/i)
+
+if text =~ /Ruby/
+  puts "The word Ruby was found in the text."
+end
+
+# Email validation pattern
+email = "user.name@example.com"
+if email.match?(/\A[\w.]+@[\w.]+\.\w+\z/)
+  puts "This looks like a valid email address."
+else
+  puts "This does not look like a valid email address."
+end
+
+# gsub with regex – redacting phone numbers
+text2 = "My phone is 555-1234 and backup is 555-5678."
+puts text2.gsub(/[0-9]{3}-[0-9]{4}/, "[REDACTED]")
+
+# match with capture groups
+log_entry = "ERROR 2024-03-15: Disk full"
+match = log_entry.match(/([0-9]{4})-([0-9]{2})-([0-9]{2})/)
+if match
+  puts "Year:  #{match[1]}"
+  puts "Month: #{match[2]}"
+  puts "Day:   #{match[3]}"
+end
