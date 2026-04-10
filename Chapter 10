@@ -1,0 +1,240 @@
+# Chapter 10 – Modules as mixins
+
+module Greetable
+  def greet
+    puts "Hello! I am #{name}."
+  end
+
+  def farewell
+    puts "Goodbye from #{name}!"
+  end
+end
+
+module Describable
+  def describe
+    parts = instance_variables.map do |var|
+      "#{var}=#{instance_variable_get(var).inspect}"
+    end
+    puts "#{self.class.name}(#{parts.join(', ')})"
+  end
+end
+
+class Person
+  include Greetable
+  include Describable
+
+  attr_reader :name, :age
+
+  def initialize(name, age)
+    @name = name
+    @age  = age
+  end
+end
+
+class Company
+  include Greetable
+  include Describable
+
+  attr_reader :name, :industry
+
+  def initialize(name, industry)
+    @name     = name
+    @industry = industry
+  end
+end
+
+person  = Person.new("Isabel", 32)
+company = Company.new("RubyTech", "Software")
+
+person.greet
+company.greet
+person.farewell
+company.describe
+person.describe
+
+puts Person.ancestors.inspect
+
+# Chapter 10 – Custom Enumerable class
+
+class Library
+  include Enumerable
+
+  def initialize
+    @books = []
+  end
+
+  def add_book(title, author, year)
+    @books << { title: title, author: author, year: year }
+    self
+  end
+
+  def each(&block)
+    @books.each(&block)
+  end
+end
+
+library = Library.new
+library
+  .add_book("The Pragmatic Programmer", "Hunt & Thomas", 1999)
+  .add_book("Clean Code",               "Robert Martin",  2008)
+  .add_book("Ruby Programming",          "Matz",           2004)
+  .add_book("Design Patterns",           "Gang of Four",   1994)
+  .add_book("Refactoring",               "Martin Fowler",  1999)
+
+puts "All books:"
+library.each { |book| puts "  #{book[:title]} (#{book[:year]})" }
+
+puts "Books from 1999 or earlier:"
+library.select { |b| b[:year] <= 1999 }.each { |b| puts "  #{b[:title]}" }
+
+puts "Sorted alphabetically:"
+library.sort_by { |b| b[:title] }.each { |b| puts "  #{b[:title]}" }
+
+puts "Most recent: #{library.max_by { |b| b[:year] }[:title]}"
+puts "Total books: #{library.count}"
+puts "Any before 2000? #{library.any? { |b| b[:year] < 2000 }}"
+
+# Chapter 10 – Modules as namespaces
+
+module Geometry
+  PI = Math::PI
+
+  class Circle
+    def initialize(radius)
+      @radius = radius
+    end
+
+    def area
+      Geometry::PI * @radius ** 2
+    end
+
+    def circumference
+      2 * Geometry::PI * @radius
+    end
+  end
+
+  class Rectangle
+    def initialize(w, h); @w = w; @h = h; end
+    def area;      @w * @h;        end
+    def perimeter; 2 * (@w + @h);  end
+  end
+
+  def self.total_area(*shapes)
+    shapes.sum(&:area)
+  end
+end
+
+c = Geometry::Circle.new(5)
+r = Geometry::Rectangle.new(4, 6)
+
+puts c.area.round(4)
+puts c.circumference.round(4)
+puts r.area
+puts r.perimeter
+puts Geometry.total_area(c, r).round(4)
+puts Geometry::PI.round(6)
+
+# Chapter 10 – extend and prepend
+
+module ClassInfo
+  def description
+    puts "I am the #{name} class."
+  end
+
+  def version
+    "1.0.0"
+  end
+end
+
+class Application
+  extend ClassInfo
+end
+
+Application.description
+puts Application.version
+
+module Logging
+  def log(message)
+    puts "[#{Time.now.strftime('%H:%M:%S')}] #{self.class.name}: #{message}"
+  end
+end
+
+class Service
+  include Logging
+
+  def start
+    log("Service is starting.")
+    log("Initialization complete.")
+  end
+end
+
+svc = Service.new
+svc.start
+svc.log("Custom log entry.")
+
+# prepend – method wrapping / instrumentation
+module Timed
+  def area
+    start  = Time.now
+    result = super
+    elapsed = Time.now - start
+    puts "area() took #{(elapsed * 1_000_000).round(2)} microseconds."
+    result
+  end
+end
+
+class SlowCircle
+  prepend Timed
+
+  def initialize(radius); @radius = radius; end
+
+  def area
+    Math::PI * @radius ** 2
+  end
+end
+
+sc = SlowCircle.new(7)
+puts sc.area.round(4)
+
+# Chapter 10 – require and require_relative pattern illustration
+# (This file shows the structure – the actual files are referenced relatively)
+
+# require 'json'                      # loads standard library
+# require 'date'                      # loads standard library
+# require_relative 'models/user'      # loads your own file
+# require_relative 'helpers/formatter'
+
+# Nested module namespace example (as used across files)
+module Helpers
+  module Validator
+    def valid_username?(name)
+      name.is_a?(String) && name.length >= 3 && name.length <= 20
+    end
+
+    def valid_email?(email)
+      email.is_a?(String) && email.match?(/\A[\w.]+@[\w.]+\.\w+\z/)
+    end
+  end
+end
+
+module Models
+  class User
+    include Helpers::Validator
+
+    attr_reader :username, :email
+
+    def initialize(username, email)
+      @username = username
+      @email    = email
+    end
+
+    def valid?
+      valid_username?(@username) && valid_email?(@email)
+    end
+  end
+end
+
+u1 = Models::User.new("alice", "alice@example.com")
+u2 = Models::User.new("ab", "notanemail")
+puts u1.valid?
+puts u2.valid?
