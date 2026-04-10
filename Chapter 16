@@ -1,0 +1,236 @@
+# Chapter 16 – Open classes and monkey patching
+
+class Integer
+  def prime?
+    return false if self < 2
+    return true  if self == 2
+    return false if self.even?
+    (3..Math.sqrt(self).to_i).step(2).none? { |i| self % i == 0 }
+  end
+
+  def factorial
+    return 1 if self <= 1
+    (1..self).reduce(1, :*)
+  end
+end
+
+class String
+  def word_count
+    split.length
+  end
+
+  def palindrome?
+    cleaned = downcase.gsub(/[^a-z0-9]/, '')
+    cleaned == cleaned.reverse
+  end
+
+  def titleize
+    split.map(&:capitalize).join(' ')
+  end
+end
+
+puts 2.prime?
+puts 17.prime?
+puts 18.prime?
+puts 5.factorial
+puts 7.factorial
+
+puts "Hello world how are you".word_count
+puts "racecar".palindrome?
+puts "hello".palindrome?
+puts "the quick brown fox".titleize
+
+# Chapter 16 – Reflection: inspecting objects at runtime
+
+class Vehicle
+  attr_accessor :make, :model, :year
+
+  @@count = 0
+
+  def initialize(make, model, year)
+    @make  = make
+    @model = model
+    @year  = year
+    @@count += 1
+  end
+
+  def self.count
+    @@count
+  end
+
+  private
+
+  def secret_vin
+    "VIN-#{@year}-#{@make[0..2].upcase}"
+  end
+end
+
+car = Vehicle.new("Toyota", "Camry", 2022)
+
+puts car.class
+puts car.class.name
+puts car.is_a?(Vehicle)
+puts car.is_a?(String)
+puts car.kind_of?(Vehicle)
+puts car.instance_of?(Vehicle)
+puts car.respond_to?(:make)
+puts car.respond_to?(:secret_vin)
+puts car.respond_to?(:secret_vin, true)
+
+puts car.instance_variables.inspect
+puts car.instance_variable_get(:@make)
+car.instance_variable_set(:@color, "red")
+puts car.instance_variable_get(:@color)
+
+puts car.public_methods(false).sort.inspect
+puts car.private_methods(false).sort.inspect
+puts Vehicle.instance_methods(false).sort.inspect
+puts Vehicle.ancestors.inspect
+
+# Chapter 16 – method_missing and respond_to_missing?
+
+class FlexibleRecord
+  def initialize(data = {})
+    @data = data
+  end
+
+  def method_missing(name, *args)
+    key = name.to_s
+    if key.end_with?('=')
+      @data[key.chomp('=')] = args.first
+    elsif key.end_with?('?')
+      @data.key?(key.chomp('?'))
+    elsif @data.key?(key)
+      @data[key]
+    else
+      super
+    end
+  end
+
+  def respond_to_missing?(name, include_private = false)
+    key = name.to_s
+    if key.end_with?('=') || key.end_with?('?')
+      true
+    elsif @data.key?(key)
+      true
+    else
+      super
+    end
+  end
+
+  def to_s
+    @data.inspect
+  end
+end
+
+record = FlexibleRecord.new
+record.name = "Layla"
+record.age  = 31
+record.city = "Beirut"
+
+puts record.name
+puts record.age
+puts record.city?
+puts record.country?
+puts record
+puts record.respond_to?(:name)
+puts record.respond_to?(:nonexistent)
+
+# Chapter 16 – define_method for programmatic method creation
+
+class WeatherReport
+  METRICS = [:temperature, :humidity, :wind_speed, :pressure, :visibility]
+
+  METRICS.each do |metric|
+    define_method(metric) do
+      instance_variable_get("@#{metric}")
+    end
+
+    define_method("#{metric}=") do |value|
+      instance_variable_set("@#{metric}", value)
+    end
+
+    define_method("#{metric}_available?") do
+      !instance_variable_get("@#{metric}").nil?
+    end
+  end
+
+  def initialize(data = {})
+    data.each do |key, value|
+      send("#{key}=", value) if METRICS.include?(key)
+    end
+  end
+
+  def summary
+    METRICS.each_with_object([]) do |metric, lines|
+      if send("#{metric}_available?")
+        lines << "  #{metric.to_s.tr('_', ' ').capitalize}: #{send(metric)}"
+      end
+    end.join("\n")
+  end
+end
+
+report = WeatherReport.new(
+  temperature: "22 C",
+  humidity:    "65%",
+  wind_speed:  "15 km/h"
+)
+
+puts report.temperature
+puts report.humidity_available?
+puts report.pressure_available?
+report.pressure = "1013 hPa"
+puts report.pressure
+puts report.summary
+puts WeatherReport.instance_methods(false).sort.inspect
+
+# Chapter 16 – Building a DSL (HTML builder)
+
+class HtmlBuilder
+  def initialize
+    @elements = []
+  end
+
+  def method_missing(tag, content = nil, **attrs, &block)
+    attr_string = attrs.map { |k, v| " #{k}=\"#{v}\"" }.join
+    if block
+      inner = HtmlBuilder.new
+      inner.instance_eval(&block)
+      @elements << "<#{tag}#{attr_string}>#{inner.to_html}</#{tag}>"
+    elsif content
+      @elements << "<#{tag}#{attr_string}>#{content}</#{tag}>"
+    else
+      @elements << "<#{tag}#{attr_string}/>"
+    end
+    self
+  end
+
+  def respond_to_missing?(name, include_private = false)
+    true
+  end
+
+  def to_html
+    @elements.join("\n")
+  end
+end
+
+def html(&block)
+  builder = HtmlBuilder.new
+  builder.instance_eval(&block)
+  builder.to_html
+end
+
+page = html do
+  div class: "container" do
+    h1 "Welcome to Ruby Metaprogramming"
+    p  "This HTML was generated entirely in Ruby."
+    ul do
+      li "Open classes extend any class"
+      li "define_method creates methods dynamically"
+      li "DSLs make APIs feel natural"
+    end
+    a "Read more", href: "https://ruby-lang.org", class: "btn"
+  end
+end
+
+puts page
