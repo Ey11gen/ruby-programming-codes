@@ -1,0 +1,183 @@
+# Chapter 12 – Reading files
+# Create a sample file first, then read it
+
+File.write("example.txt", "Line one\nLine two\nLine three\nLine four\n")
+
+content = File.read("example.txt")
+puts content
+puts "---"
+puts "File contains #{content.length} characters."
+puts "File has #{content.lines.count} lines."
+
+# Line-by-line with foreach
+File.foreach("example.txt") do |line|
+  puts line.chomp
+end
+
+# File.open with block (preferred)
+File.open("example.txt", "r") do |file|
+  puts "File size: #{file.size} bytes"
+  first_line = file.readline
+  puts "First line: #{first_line.chomp}"
+  remaining  = file.read
+  puts "Remaining length: #{remaining.length} chars"
+end
+
+File.open("example.txt", "r") do |file|
+  lines = file.readlines
+  puts "Total lines: #{lines.length}"
+  lines.each_with_index do |line, index|
+    puts "Line #{index + 1}: #{line.chomp}"
+  end
+end
+
+File.delete("example.txt")
+
+# Chapter 12 – Writing and appending to files
+
+File.open("output.txt", "w") do |file|
+  file.puts "Line one written to the file."
+  file.puts "Line two written to the file."
+  file.write "Line three (no automatic newline)."
+  file.write "\n"
+  file.puts "Line four."
+  file.flush
+end
+
+puts "File written. Contents:"
+puts File.read("output.txt")
+
+# Appending with "a"
+log_file = "application.log"
+3.times do |i|
+  File.open(log_file, "a") do |file|
+    timestamp = Time.now.strftime("%Y-%m-%d %H:%M:%S")
+    file.puts "[#{timestamp}] Event #{i + 1} occurred."
+  end
+end
+
+puts "Log file contents:"
+puts File.read(log_file)
+
+# File.write convenience method
+File.write("quick_output.txt", "This overwrites the file entirely.\n")
+puts File.read("quick_output.txt")
+
+File.delete("output.txt")
+File.delete(log_file)
+File.delete("quick_output.txt")
+
+# Chapter 12 – File system navigation
+
+File.write("output.txt", "test content")
+
+puts File.exist?("output.txt")
+puts File.exist?("nonexistent.txt")
+puts File.file?("output.txt")
+puts File.directory?(".")
+puts File.size("output.txt")
+puts File.basename("path/to/my_file.txt")
+puts File.dirname("path/to/my_file.txt")
+puts File.extname("path/to/my_file.txt")
+puts File.join("path", "to", "my_file.txt")
+puts File.expand_path("output.txt")
+
+puts Dir.pwd
+
+Dir.mkdir("test_directory") unless Dir.exist?("test_directory")
+puts "Directory exists: #{Dir.exist?("test_directory")}"
+
+Dir.chdir("test_directory") do
+  puts "Now inside: #{Dir.pwd}"
+  File.write("temp.txt", "temporary file")
+end
+puts "Back to: #{Dir.pwd}"
+
+File.delete("output.txt")
+File.delete("test_directory/temp.txt")
+Dir.rmdir("test_directory")
+
+# Chapter 12 – Working with CSV files
+
+require 'csv'
+
+csv_data = <<~CSV
+  name,age,city,salary
+  Alice Martin,32,London,75000
+  Bob Chen,27,Singapore,68000
+  Carlos Rivera,41,Madrid,92000
+  Diana Okafor,35,Lagos,58000
+CSV
+
+File.write("employees.csv", csv_data)
+
+CSV.foreach("employees.csv", headers: true) do |row|
+  puts "Name: #{row['name']}"
+  puts "  Age:    #{row['age']}"
+  puts "  City:   #{row['city']}"
+  puts "  Salary: $#{row['salary']}"
+  puts
+end
+
+employees = [
+  { name: "Elena Rossi",    age: 29, city: "Rome",  salary: 71000 },
+  { name: "James Park",     age: 38, city: "Seoul",  salary: 88000 },
+  { name: "Fatima Al-Said", age: 31, city: "Dubai",  salary: 95000 },
+]
+
+CSV.open("new_employees.csv", "w") do |csv|
+  csv << ["name", "age", "city", "salary"]
+  employees.each do |emp|
+    csv << [emp[:name], emp[:age], emp[:city], emp[:salary]]
+  end
+end
+
+puts "Written CSV:"
+puts File.read("new_employees.csv")
+
+data = CSV.read("new_employees.csv", headers: true)
+puts "Average salary: $#{data.sum { |row| row['salary'].to_i } / data.length}"
+
+File.delete("employees.csv")
+File.delete("new_employees.csv")
+
+# Chapter 12 – Working with JSON files
+
+require 'json'
+
+config = {
+  app_name:    "MyRubyApp",
+  version:     "2.1.0",
+  debug_mode:  false,
+  max_retries: 3,
+  database: {
+    host: "localhost",
+    port: 5432,
+    name: "myapp_production"
+  },
+  allowed_ips: ["192.168.1.1", "10.0.0.1", "203.0.113.5"]
+}
+
+json_string  = JSON.generate(config)
+puts json_string
+puts
+pretty_json  = JSON.pretty_generate(config)
+puts pretty_json
+
+File.write("config.json", pretty_json)
+
+raw    = File.read("config.json")
+config2 = JSON.parse(raw)
+
+puts config2["app_name"]
+puts config2["version"]
+puts config2["database"]["host"]
+puts config2["database"]["port"]
+puts config2["allowed_ips"].inspect
+puts config2["debug_mode"].class
+
+config2["max_retries"] = 5
+File.write("config.json", JSON.pretty_generate(config2))
+puts "Config updated."
+
+File.delete("config.json")
