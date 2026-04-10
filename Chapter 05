@@ -1,0 +1,176 @@
+# Chapter 5 – while, until, loop, next, break
+
+count = 1
+while count <= 5
+  puts "Count is now #{count}."
+  count += 1
+end
+puts "Loop is complete."
+
+# Sum 1..100 with while
+total  = 0
+number = 1
+while number <= 100
+  total  += number
+  number += 1
+end
+puts "The sum of 1 through 100 is #{total}."
+
+# until loop
+target  = 10
+current = 0
+until current == target
+  current += 1
+  puts "Current value: #{current}"
+end
+puts "Reached the target of #{target}."
+
+# loop with break
+counter = 0
+loop do
+  counter += 1
+  puts "Running iteration #{counter}."
+  break if counter >= 5
+end
+puts "Exited after #{counter} iterations."
+
+# next – skip even numbers
+number2 = 0
+while number2 < 10
+  number2 += 1
+  next if number2.even?
+  puts number2
+end
+
+# Chapter 5 – times, upto, downto
+
+5.times do
+  puts "Hello, Ruby!"
+end
+
+5.times do |i|
+  puts "Iteration number #{i}"
+end
+
+1.upto(10) do |n|
+  print "#{n} "
+end
+puts
+
+1.upto(5) do |n|
+  puts "#{n} squared is #{n ** 2}"
+end
+
+10.downto(1) do |n|
+  print "#{n} "
+end
+puts
+
+puts "Countdown:"
+5.downto(1) do |n|
+  puts "#{n}..."
+end
+puts "Launch!"
+
+# Chapter 5 – each, map, select, reject
+
+fruits = ["apple", "banana", "cherry", "date", "elderberry"]
+fruits.each do |fruit|
+  puts "I like #{fruit}."
+end
+
+numbers = [3, 7, 12, 5, 9, 2, 18]
+numbers.each do |n|
+  if n.even?
+    puts "#{n} is even."
+  else
+    puts "#{n} is odd."
+  end
+end
+
+# map
+nums    = [1, 2, 3, 4, 5]
+doubled = nums.map { |n| n * 2 }
+squared = nums.map { |n| n ** 2 }
+puts doubled.inspect
+puts squared.inspect
+puts nums.inspect
+
+# select and reject
+evens      = nums.select { |n| n.even? }
+odds       = nums.select { |n| n.odd? }
+above_five = nums.select { |n| n > 5 }
+puts evens.inspect
+puts odds.inspect
+puts above_five.inspect
+
+scores  = [45, 78, 92, 61, 88, 34, 70, 55]
+passing = scores.reject { |score| score < 60 }
+failing = scores.reject { |score| score >= 60 }
+puts "Passing scores: #{passing.inspect}"
+puts "Failing scores: #{failing.inspect}"
+
+# Chapter 5 – reduce / inject and method chaining
+
+numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+total   = numbers.reduce(0)  { |sum, n|  sum + n }
+product = numbers.reduce(1)  { |prod, n| prod * n }
+largest = numbers.reduce     { |max, n|  n > max ? n : max }
+joined  = numbers.reduce("") { |str, n|  str + n.to_s + " " }
+
+puts "Sum: #{total}"
+puts "Product: #{product}"
+puts "Largest: #{largest}"
+puts "Joined: #{joined.strip}"
+
+# Method chaining pipeline
+result = (1..20).to_a
+  .select { |n| n.odd? }
+  .map    { |n| n ** 2 }
+  .reject { |n| n > 100 }
+  .reduce(0) { |sum, n| sum + n }
+puts "Pipeline result: #{result}"
+
+# Chapter 5 – Blocks, Procs, and Lambdas
+
+# yield inside a method
+def greet_three_times
+  yield
+  yield
+  yield
+end
+
+greet_three_times do
+  puts "Hello from the block!"
+end
+
+# yield with values
+def apply_to_five
+  yield 5
+end
+
+apply_to_five do |n|
+  puts "The value is #{n}"
+  puts "Its square is #{n ** 2}"
+end
+
+# Procs
+square = Proc.new { |n| n ** 2 }
+double = Proc.new { |n| n * 2 }
+greet  = Proc.new { |name| puts "Hello, #{name}!" }
+
+puts square.call(4)
+puts square.call(7)
+puts double.call(5)
+greet.call("Maria")
+
+[1, 2, 3, 4, 5].map(&square).each { |v| puts v }
+
+# Lambdas
+add      = lambda { |a, b| a + b }
+multiply = ->(a, b) { a * b }
+
+puts add.call(3, 4)
+puts multiply.call(6, 7)
+puts add.(10, 20)
+puts multiply.(5, 8)
