@@ -1,0 +1,154 @@
+# Chapter 2 – Variables and assignment
+
+name = "Alice"
+age  = 30
+puts name
+puts age
+
+score = 10
+puts score
+score = 25
+puts score
+score = score + 5
+puts score
+
+# Compound assignment operators
+score += 5
+puts score
+
+# Descriptive snake_case variable names
+first_name      = "Maria"
+last_name       = "Gonzalez"
+age_in_years    = 28
+account_balance = 1500.75
+is_active       = true
+
+puts first_name
+puts last_name
+puts age_in_years
+puts account_balance
+puts is_active
+
+# Chapter 2 – Integers, Floats, and Arithmetic
+
+whole_number   = 42
+decimal_number = 3.14
+puts whole_number.class
+puts decimal_number.class
+
+# Integer division (truncates)
+puts 10 / 3
+puts 7 / 2
+puts -7 / 2
+
+# Float division
+puts 10.0 / 3
+puts 10 / 3.0
+puts 10.0 / 3.0
+puts 7.to_f / 2
+
+# Modulo operator
+puts 10 % 3
+puts 8 % 2
+puts 15 % 4
+puts 7 % 7
+
+# Useful number methods
+puts 42.even?
+puts 43.odd?
+puts(-10.abs)
+puts 3.14159.round
+puts 3.14159.round(2)
+puts 3.7.ceil
+puts 3.2.floor
+puts 10.between?(5, 15)
+
+# Chapter 2 – Booleans, Nil, and Symbols
+
+user_logged_in = true
+has_permission = false
+puts user_logged_in
+puts has_permission
+puts user_logged_in.class
+
+# Nil
+result = nil
+puts result.inspect
+puts result.nil?
+puts result.class
+
+# Symbols
+color_1 = :red
+color_2 = :red
+puts color_1 == color_2
+puts color_1.object_id == color_2.object_id
+puts :hello.class
+puts :hello.to_s
+
+# Chapter 2 – Arithmetic, Comparison, and Logical Operators
+
+# Arithmetic
+puts 15 + 4
+puts 15 - 4
+puts 15 * 4
+puts 15 / 4
+puts 15 % 4
+puts 15 ** 2
+
+# Comparison
+puts 10 == 10
+puts 10 == 11
+puts 10 != 11
+puts 10 > 5
+puts 10 < 5
+puts 10 >= 10
+puts 10 <= 9
+puts "apple" == "apple"
+puts "apple" == "orange"
+puts 10 <=> 20
+puts 10 <=> 10
+puts 20 <=> 10
+
+# Logical operators
+puts true && true
+puts true && false
+puts false || true
+puts false || false
+puts !true
+puts !false
+puts (10 > 5) && (20 > 15)
+puts (10 > 5) && (20 < 15)
+puts (10 < 5) || (20 > 15)
+
+# Chapter 2 – Type conversion
+
+num_string  = "42"
+actual_num  = num_string.to_i
+puts actual_num
+puts actual_num.class
+puts actual_num + 8
+
+float_string = "3.14"
+actual_float = float_string.to_f
+puts actual_float
+puts actual_float.class
+
+number    = 100
+as_string = number.to_s
+puts as_string
+puts as_string.class
+puts "The value is " + as_string
+
+# to_i edge cases
+puts "42abc".to_i
+puts "abc".to_i
+puts "3.14".to_i
+puts "".to_i
+
+# Chapter 2 – Reading user input with gets.chomp
+
+print "Enter your name: "
+name = gets.chomp
+print "Enter your age: "
+age = gets.chomp.to_i
+puts "Hello, #{name}! You will be #{age + 1} years old next year."
